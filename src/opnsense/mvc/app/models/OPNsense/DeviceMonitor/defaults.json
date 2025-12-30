@@ -1,0 +1,28 @@
+{
+  "paths": {
+    "dbFile": "/var/db/devicemonitor/devices.db",
+    "ouiFile": "/var/db/devicemonitor/oui.txt",
+    "configFile": "/var/db/devicemonitor/config.json",
+    "cronFile": "/etc/cron.d/devicemonitor_oui",
+    "pidFile": "/var/run/devicemonitor.pid",
+    "scanScript": "/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/scan_network.py",
+    "daemonScript": "/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py",
+    "ouiDownloadScript": "/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/download_oui.py"
+  },
+  "config": {
+    "enabled": "0",
+    "email_to": "",
+    "email_from": "devicemonitor@opnsense.local",
+    "scan_interval": "300",
+    "show_domain": "0",
+    "oui": {
+      "urls": [
+        "http://standards-oui.ieee.org/oui/oui.txt",
+        "http://standards-oui.ieee.org/oui.txt",
+        "http://standards.ieee.org/develop/regauth/oui/oui.txt"
+      ],
+      "auto_update_enabled": "0",
+      "update_hour": "3"
+    }
+  }
+}

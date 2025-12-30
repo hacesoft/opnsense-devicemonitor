@@ -1,0 +1,583 @@
+# Device Monitor Plugin - Translation Template
+# Copyright (C) 2025 Hacesoft
+#
+# STRUKTURA:
+# Každá sekce je označena podle souboru kde se používá
+# Formát: [SOUBOR] Popis
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Device Monitor 2.1\n"
+"POT-Creation-Date: 2025-12-17 12:00+0000\n"
+"PO-Revision-Date: 2025-12-17 12:00+0100\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# ============================================
+# [Menu.xml] Hlavní menu položky
+# ============================================
+
+#: Menu.xml:3
+msgid "Device Monitor"
+msgstr "Sledování zařízení"
+msgstr ""
+
+#: Menu.xml:4
+msgid "Dashboard"
+msgstr "Přehled"
+msgstr ""
+
+#: Menu.xml:5
+msgid "Devices"
+msgstr "Zařízení"
+msgstr ""
+
+#: Menu.xml:6
+msgid "Settings"
+msgstr "Nastavení"
+msgstr ""
+
+# ============================================
+# [index.volt] Dashboard - Hlavní stránka
+# ============================================
+
+#: index.volt:3 - Nadpis stránky
+msgid "Device Monitor - Dashboard"
+msgstr "Sledování zařízení - Přehled"
+msgstr ""
+
+#: index.volt:10 - Panel heading
+msgid "Daemon Status"
+msgstr "Status daemona"
+msgstr ""
+
+#: index.volt:15 - Status label (loading)
+msgid "Checking..."
+msgstr "Kontroluji..."
+msgstr ""
+
+#: index.volt:16 - Status label
+msgid "Running"
+msgstr "Běží"
+msgstr ""
+
+#: index.volt:17 - Status label
+msgid "Stopped"
+msgstr "Zastaven"
+msgstr ""
+
+#: index.volt:18 - Status label - Process ID
+msgid "PID"
+msgstr "PID"
+msgstr ""
+
+#: index.volt:20 - Button
+msgid "Start"
+msgstr "Spustit"
+msgstr ""
+
+#: index.volt:23 - Button
+msgid "Stop"
+msgstr "Zastavit"
+msgstr ""
+
+#: index.volt:26 - Button
+msgid "Restart"
+msgstr "Restartovat"
+msgstr ""
+
+#: index.volt:35 - Panel title
+msgid "Statistics"
+msgstr "Statistiky"
+msgstr ""
+
+#: index.volt:38 - Statistika - celkový počet
+msgid "Total Devices"
+msgstr "Celkem zařízení"
+msgstr ""
+
+#: index.volt:47 - Statistika - dnešní nová
+msgid "New Today"
+msgstr "Nových dnes"
+msgstr ""
+
+#: index.volt:60 - Button - spustit sken ručně
+msgid "Manual Scan"
+msgstr "Manuální sken"
+msgstr ""
+
+#: index.volt:120 - Toast message
+msgid "Scan completed"
+msgstr "Sken dokončen"
+msgstr ""
+
+#: index.volt:121 - Toast message - plurál
+msgid "devices found"
+msgstr "zařízení nalezeno"
+msgstr ""
+
+#: index.volt:122 - Toast message
+msgid "new"
+msgstr "nových"
+msgstr ""
+
+#: index.volt:130 - Toast message - success
+msgid "Daemon started successfully"
+msgstr "Daemon úspěšně spuštěn"
+msgstr ""
+
+#: index.volt:132 - Toast message - error
+msgid "Failed to start daemon"
+msgstr "Daemon se nepodařilo spustit"
+msgstr ""
+
+#: index.volt:140 - Toast message - success
+msgid "Daemon stopped successfully"
+msgstr "Daemon úspěšně zastaven"
+msgstr ""
+
+#: index.volt:142 - Toast message - error
+msgid "Failed to stop daemon"
+msgstr "Daemon se nepodařilo zastavit"
+msgstr ""
+
+#: index.volt:150 - Toast message - success
+msgid "Daemon restarted successfully"
+msgstr "Daemon úspěšně restartován"
+msgstr ""
+
+#: index.volt:152 - Toast message - error
+msgid "Failed to restart daemon"
+msgstr "Daemon se nepodařilo restartovat"
+msgstr ""
+
+# ============================================
+# [devices.volt] Tabulka zařízení
+# ============================================
+
+#: devices.volt:3 - Nadpis stránky
+msgid "Device Monitor - Devices"
+msgstr "Sledování zařízení - Zařízení"
+msgstr ""
+
+#: devices.volt:6 - Button - smazat vše
+msgid "Clear Database"
+msgstr "Vyčistit databázi"
+msgstr ""
+
+#: devices.volt:12 - Tabulka - hlavička sloupce
+msgid "MAC Address"
+msgstr "MAC adresa"
+msgstr ""
+
+#: devices.volt:13 - Tabulka - hlavička sloupce
+msgid "IP Address"
+msgstr "IP adresa"
+msgstr ""
+
+#: devices.volt:14 - Tabulka - hlavička sloupce
+msgid "Hostname"
+msgstr "Hostname"
+msgstr ""
+
+#: devices.volt:15 - Tabulka - hlavička sloupce
+msgid "Vendor"
+msgstr "Výrobce"
+msgstr ""
+
+#: devices.volt:16 - Tabulka - hlavička sloupce
+msgid "VLAN"
+msgstr "VLAN"
+msgstr ""
+
+#: devices.volt:17 - Tabulka - hlavička sloupce
+msgid "First Seen"
+msgstr "První výskyt"
+msgstr ""
+
+#: devices.volt:18 - Tabulka - hlavička sloupce
+msgid "Last Seen"
+msgstr "Poslední výskyt"
+msgstr ""
+
+#: devices.volt:19 - Tabulka - hlavička sloupce
+msgid "Actions"
+msgstr "Akce"
+msgstr ""
+
+#: devices.volt:45 - Confirm dialog
+msgid "Delete device"
+msgstr "Smazat zařízení"
+msgstr ""
+
+#: devices.volt:62 - Confirm dialog
+msgid "Really delete all devices from database?"
+msgstr "Opravdu smazat VŠECHNA zařízení z databáze?"
+msgstr ""
+
+#: devices.volt:72 - Toast message - success
+msgid "Device deleted"
+msgstr "Zařízení smazáno"
+msgstr ""
+
+#: devices.volt:74 - Toast message - error
+msgid "Error deleting device"
+msgstr "Chyba při mazání zařízení"
+msgstr ""
+
+#: devices.volt:85 - Toast message - success
+msgid "Database cleared"
+msgstr "Databáze vyčištěna"
+msgstr ""
+
+#: devices.volt:87 - Toast message - error
+msgid "Error clearing database"
+msgstr "Chyba při čištění databáze"
+msgstr ""
+
+# ============================================
+# [settings.volt] Nastavení - Tab 1: Obecné
+# ============================================
+
+#: settings.volt:3 - Nadpis stránky
+msgid "Device Monitor - Settings"
+msgstr "Sledování zařízení - Nastavení"
+msgstr ""
+
+#: settings.volt:8 - Tab label
+msgid "General"
+msgstr "Obecné"
+msgstr ""
+
+#: settings.volt:28 - Checkbox label
+msgid "Enable Monitoring"
+msgstr "Zapnout monitoring"
+msgstr ""
+
+#: settings.volt:29 - Checkbox help text
+msgid "Enable automatic network monitoring"
+msgstr "Zapne automatické sledování nových zařízení"
+msgstr ""
+
+#: settings.volt:34 - Input label
+msgid "Email Recipient"
+msgstr "Email příjemce"
+msgstr ""
+
+#: settings.volt:35 - Input help text
+msgid "Where to send notifications about new devices"
+msgstr "Kam posílat upozornění na nová zařízení"
+msgstr ""
+
+#: settings.volt:40 - Input label
+msgid "Email Sender"
+msgstr "Email odesílatele"
+msgstr ""
+
+#: settings.volt:41 - Input help text
+msgid "From which address to send notifications"
+msgstr "Z jaké adresy odesílat notifikace"
+msgstr ""
+
+#: settings.volt:46 - Input label
+msgid "Scan Interval"
+msgstr "Interval skenování"
+msgstr ""
+
+#: settings.volt:47 - Input help text
+msgid "Seconds between scans (60-3600)"
+msgstr "Sekund mezi skeny (60-3600)"
+msgstr ""
+
+#: settings.volt:53 - Button
+msgid "Save"
+msgstr "Uložit"
+msgstr ""
+
+#: settings.volt:56 - Button
+msgid "Test Email"
+msgstr "Test Email"
+msgstr ""
+
+#: settings.volt:70 - Alert heading
+msgid "Important - SMTP Configuration"
+msgstr "Důležité - SMTP konfigurace"
+msgstr ""
+
+#: settings.volt:71 - Alert text
+msgid "Plugin uses sendmail (Postfix) to send emails"
+msgstr "Plugin používá sendmail (Postfix) pro odesílání emailů"
+msgstr ""
+
+#: settings.volt:72 - Alert text
+msgid "Must be configured in: System > Settings > Notifications > SMTP"
+msgstr "Musí být nakonfigurováno v: System > Settings > Notifications > SMTP"
+msgstr ""
+
+#: settings.volt:120 - Toast message - success
+msgid "Configuration saved"
+msgstr "Konfigurace uložena"
+msgstr ""
+
+#: settings.volt:122 - Toast message - error
+msgid "Error saving configuration"
+msgstr "Chyba při ukládání konfigurace"
+msgstr ""
+
+#: settings.volt:135 - Toast message - success
+msgid "Test email sent to"
+msgstr "Testovací email odeslán na"
+msgstr ""
+
+#: settings.volt:137 - Toast message - error
+msgid "Failed to send email"
+msgstr "Email se nepodařilo odeslat"
+msgstr ""
+
+# ============================================
+# [settings.volt] Nastavení - Tab 2: OUI Database
+# ============================================
+
+#: settings.volt:11 - Tab label
+msgid "OUI Database"
+msgstr "OUI Databáze"
+msgstr ""
+
+#: settings.volt:82 - Info text
+msgid "OUI database contains ~30,000 network device manufacturers"
+msgstr "OUI databáze obsahuje ~30 000 výrobců síťových zařízení"
+msgstr ""
+
+#: settings.volt:83 - Info text
+msgid "Used to identify vendor from MAC address (e.g. Apple, Samsung, Intel)"
+msgstr "Používá se pro zjištění výrobce z MAC adresy (např. Apple, Samsung, Intel)"
+msgstr ""
+
+#: settings.volt:89 - Panel heading
+msgid "Database Status"
+msgstr "Status databáze"
+msgstr ""
+
+#: settings.volt:95 - Table row label
+msgid "Status"
+msgstr "Stav"
+msgstr ""
+
+#: settings.volt:96 - Status value (loading)
+msgid "Installed"
+msgstr "Nainstalováno"
+msgstr ""
+
+#: settings.volt:97 - Status value
+msgid "Not Installed"
+msgstr "Nenainstalováno"
+msgstr ""
+
+#: settings.volt:100 - Table row label
+msgid "File"
+msgstr "Soubor"
+msgstr ""
+
+#: settings.volt:105 - Table row label
+msgid "Size"
+msgstr "Velikost"
+msgstr ""
+
+#: settings.volt:110 - Table row label
+msgid "Vendor Count"
+msgstr "Počet výrobců"
+msgstr ""
+
+#: settings.volt:115 - Table row label
+msgid "Last Update"
+msgstr "Poslední update"
+msgstr ""
+
+#: settings.volt:122 - Button
+msgid "Download Now"
+msgstr "Stáhnout nyní"
+msgstr ""
+
+#: settings.volt:123 - Button (processing state)
+msgid "Downloading..."
+msgstr "Stahuji..."
+msgstr ""
+
+#: settings.volt:126 - Button
+msgid "Delete Database"
+msgstr "Smazat databázi"
+msgstr ""
+
+#: settings.volt:134 - Panel heading
+msgid "OUI Data Sources"
+msgstr "Zdroje OUI databáze"
+msgstr ""
+
+#: settings.volt:138 - Info text
+msgid "Enter list of URLs to download OUI database from"
+msgstr "Zadej seznam URL odkud stahovat OUI databázi"
+msgstr ""
+
+#: settings.volt:139 - Info text
+msgid "Attempts will be made in order from top to bottom"
+msgstr "Pokusy proběhnou v pořadí shora dolů"
+msgstr ""
+
+#: settings.volt:144 - Textarea label
+msgid "URL sources (one per line)"
+msgstr "URL zdroje (jeden na řádek)"
+msgstr ""
+
+#: settings.volt:146 - Help text
+msgid "Official IEEE sources:"
+msgstr "Oficiální IEEE zdroje:"
+msgstr ""
+
+#: settings.volt:158 - Panel heading
+msgid "Automatic Updates"
+msgstr "Automatické aktualizace"
+msgstr ""
+
+#: settings.volt:163 - Checkbox label
+msgid "Enable automatic updates"
+msgstr "Zapnout automatické aktualizace"
+msgstr ""
+
+#: settings.volt:164 - Checkbox help text
+msgid "Daily download of new database version"
+msgstr "Denní stahování nové verze databáze"
+msgstr ""
+
+#: settings.volt:170 - Input label
+msgid "Update Time"
+msgstr "Čas aktualizace"
+msgstr ""
+
+#: settings.volt:197 - Help text
+msgid "Recommended: 03:00 (at night, low load)"
+msgstr "Doporučeno: 03:00 (v noci, nízká zátěž)"
+msgstr ""
+
+#: settings.volt:206 - Button
+msgid "Save OUI Settings"
+msgstr "Uložit nastavení OUI"
+msgstr ""
+
+#: settings.volt:207 - Button (processing state)
+msgid "Saving..."
+msgstr "Ukládám..."
+msgstr ""
+
+#: settings.volt:250 - Toast message - success
+msgid "OUI database downloaded successfully"
+msgstr "OUI databáze úspěšně stažena"
+msgstr ""
+
+#: settings.volt:252 - Toast message - error
+msgid "Download failed"
+msgstr "Stahování selhalo"
+msgstr ""
+
+#: settings.volt:265 - Confirm dialog
+msgid "Really delete OUI database?"
+msgstr "Opravdu smazat OUI databázi?"
+msgstr ""
+
+#: settings.volt:266 - Confirm dialog (second line)
+msgid "Vendor lookup will stop working until you download it again"
+msgstr "Vendor lookup přestane fungovat dokud ji znovu nestáhneš"
+msgstr ""
+
+#: settings.volt:275 - Toast message - success
+msgid "Database deleted"
+msgstr "Databáze smazána"
+msgstr ""
+
+#: settings.volt:277 - Toast message - error
+msgid "Error deleting database"
+msgstr "Chyba při mazání databáze"
+msgstr ""
+
+#: settings.volt:295 - Toast message - success
+msgid "OUI settings saved"
+msgstr "Nastavení OUI uloženo"
+msgstr ""
+
+#: settings.volt:297 - Toast message - error  
+msgid "Enter at least one URL"
+msgstr "Zadej alespoň jednu URL"
+msgstr ""
+
+# ============================================
+# [scan_network.py] Email notifikace
+# ============================================
+
+#: scan_network.py:180 - Email subject
+msgid "New Devices in Network"
+msgstr "Nová zařízení v síti"
+msgstr ""
+
+#: scan_network.py:195 - Email - table header
+msgid "Number of new devices"
+msgstr "Počet nových zařízení"
+msgstr ""
+
+#: scan_network.py:196 - Email - table header
+msgid "Detection Time"
+msgstr "Čas detekce"
+msgstr ""
+
+#: scan_network.py:197 - Email - table header
+msgid "Server"
+msgstr "Server"
+msgstr ""
+
+#: scan_network.py:215 - Email - hostname fallback
+msgid "unknown"
+msgstr "neznámý"
+msgstr ""
+
+# ============================================
+# COMMON - Společné texty
+# ============================================
+
+#: common - Loading indicator
+msgid "Loading..."
+msgstr "Načítám..."
+msgstr ""
+
+#: common - Confirmation
+msgid "Yes"
+msgstr "Ano"
+msgstr ""
+
+#: common - Cancellation
+msgid "No"
+msgstr "Ne"
+msgstr ""
+
+#: common - Button
+msgid "OK"
+msgstr "OK"
+msgstr ""
+
+#: common - Button
+msgid "Cancel"
+msgstr "Zrušit"
+msgstr ""
+
+#: common - Button
+msgid "Close"
+msgstr "Zavřít"
+msgstr ""
+
+#: common - Message type
+msgid "Error"
+msgstr "Chyba"
+msgstr ""
+
+#: common - Message type
+msgid "Success"
+msgstr "Úspěch"
+msgstr ""

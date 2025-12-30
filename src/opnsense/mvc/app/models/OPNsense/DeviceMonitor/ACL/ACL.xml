@@ -1,0 +1,9 @@
+<acl>
+    <page-services-devicemonitor>
+        <name>Services: Device Monitor</name>
+        <patterns>
+            <pattern>ui/devicemonitor/*</pattern>
+            <pattern>api/devicemonitor/*</pattern>
+        </patterns>
+    </page-services-devicemonitor>
+</acl>

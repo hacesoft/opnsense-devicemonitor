@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# PROVIDE: devicemonitor
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="devicemonitor"
+rcvar="${name}_enable"
+
+load_rc_config $name
+
+: ${devicemonitor_enable:="NO"}
+
+pidfile="/var/run/${name}.pid"
+command="/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py"
+command_interpreter="/usr/local/bin/python3"
+
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+status_cmd="${name}_status"
+
+devicemonitor_start()
+{
+    if [ -f "${pidfile}" ]; then
+        echo "${name} is already running as pid $(cat ${pidfile})."
+        return 1
+    fi
+    
+    echo "Starting ${name}."
+    ${command_interpreter} ${command} &
+    echo $! > ${pidfile}
+}
+
+devicemonitor_stop()
+{
+    if [ ! -f "${pidfile}" ]; then
+        echo "${name} is not running."
+        return 1
+    fi
+    
+    echo "Stopping ${name}."
+    kill $(cat ${pidfile}) 2>/dev/null
+    rm -f ${pidfile}
+}
+
+devicemonitor_status()
+{
+    if [ -f "${pidfile}" ]; then
+        pid=$(cat ${pidfile})
+        if ps -p ${pid} > /dev/null 2>&1; then
+            echo "${name} is running as pid ${pid}."
+            return 0
+        else
+            echo "${name} is not running but pidfile exists."
+            return 1
+        fi
+    else
+        echo "${name} is not running."
+        return 1
+    fi
+}
+
+run_rc_command "$1"

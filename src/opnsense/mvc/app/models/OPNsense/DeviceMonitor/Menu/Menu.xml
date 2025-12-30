@@ -1,0 +1,9 @@
+<menu>
+    <Services>
+        <DeviceMonitor cssClass="fa fa-plug fw" VisibleName="Device Monitor">
+            <Dashboard url="/ui/devicemonitor/index/" VisibleName="Dashboard" order="10"/>
+            <Devices url="/ui/devicemonitor/index/devices" VisibleName="Devices" order="20"/>
+            <Settings url="/ui/devicemonitor/index/settings" VisibleName="Settings" order="30"/>
+        </DeviceMonitor>
+    </Services>
+</menu>
