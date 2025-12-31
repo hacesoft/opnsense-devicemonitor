@@ -6,8 +6,6 @@
 
 Plugin pro automatické sledování síťových zařízení v OPNsense firewallu. Detekuje nová zařízení pomocí ARP skenování a odesílá emailová upozornění.
 
-![License](https://img.shields.io/badge/license-BSD--2--Clause-green) ![OPNsense](https://img.shields.io/badge/OPNsense-24.x-orange)
-
 ---
 
 ## 📋 Obsah
@@ -70,16 +68,16 @@ Tato metoda je nejjednodušší pro uživatele, kteří nejsou zvyklí na přík
 Jdi na [**Releases**](../../releases) a stáhni nejnovější archiv:
 
 ```
-opnsense-devicemonitor31122025_1254.zip
+opnsense-devicemonitor31122025_1339.zip
 ```
 
 **Název souboru:**
 - `opnsense-devicemonitor` = název pluginu
 - `31122025` = datum (DD.MM.RRRR)
-- `1254` = čas (HH:MM)
+- `1339` = čas (HH:MM)
 - `.zip` = formát archivu
 
-**Příklad:** `opnsense-devicemonitor31122025_1254.zip` = 31. prosince 2025 ve 12:54
+**Příklad:** `opnsense-devicemonitor31122025_1254.zip` = 31. prosince 2025 ve 13:39
 
 **Poznámka:** Starší verze najdeš ve složce `/old/` v releases.
 
