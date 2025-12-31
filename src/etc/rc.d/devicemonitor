@@ -1,7 +1,8 @@
 #!/bin/sh
 #
 # PROVIDE: devicemonitor
-# REQUIRE: LOGIN
+# REQUIRE: LOGIN cleanvar
+# BEFORE: DAEMON
 # KEYWORD: shutdown
 
 . /etc/rc.subr
@@ -14,8 +15,8 @@ load_rc_config $name
 : ${devicemonitor_enable:="NO"}
 
 pidfile="/var/run/${name}.pid"
-command="/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py"
-command_interpreter="/usr/local/bin/python3"
+command="/usr/local/bin/python3"
+command_args="/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py"
 
 start_cmd="${name}_start"
 stop_cmd="${name}_stop"
@@ -24,13 +25,19 @@ status_cmd="${name}_status"
 devicemonitor_start()
 {
     if [ -f "${pidfile}" ]; then
-        echo "${name} is already running as pid $(cat ${pidfile})."
-        return 1
+        if ps -p $(cat ${pidfile}) > /dev/null 2>&1; then
+            echo "${name} is already running as pid $(cat ${pidfile})."
+            return 1
+        else
+            echo "Removing stale pidfile."
+            rm -f "${pidfile}"
+        fi
     fi
     
     echo "Starting ${name}."
-    ${command_interpreter} ${command} &
-    echo $! > ${pidfile}
+    # ZMĚŇ TENHLE ŘÁDEK - přidej přesměrování do souboru:
+    /usr/sbin/daemon -f -p ${pidfile} \
+        /bin/sh -c "${command} ${command_args} >> /var/log/devicemonitor.log 2>&1"
 }
 
 devicemonitor_stop()
@@ -41,7 +48,25 @@ devicemonitor_stop()
     fi
     
     echo "Stopping ${name}."
-    kill $(cat ${pidfile}) 2>/dev/null
+    pid=$(cat ${pidfile})
+    kill ${pid} 2>/dev/null
+    
+    # Počkej max 10 sekund
+    timeout=10
+    while [ $timeout -gt 0 ]; do
+        if ! ps -p ${pid} > /dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+        timeout=$((timeout - 1))
+    done
+    
+    # Force kill pokud stále běží
+    if ps -p ${pid} > /dev/null 2>&1; then
+        echo "Sending SIGKILL."
+        kill -9 ${pid} 2>/dev/null
+    fi
+    
     rm -f ${pidfile}
 }
 

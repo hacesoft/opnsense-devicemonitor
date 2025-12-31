@@ -46,20 +46,41 @@ def signal_handler(signum, frame):
     log("Daemon stopping...", level='INFO')
     running = False
 
+LOG_FILE = "/var/log/devicemonitor.log"
+
 def log(message, level='INFO'):
     """
-    Logování s 2 úrovněmi
-    
-    Args:
-        message: Zpráva k zalogování
-        level: 'INFO' (důležité události) nebo 'DEBUG' (detaily)
+    Logování přímo do souboru + syslog
     """
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
     if level == 'INFO' and INFO_LOGGING:
-        subprocess.run(['logger', '-t', 'devicemonitor', message])
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
+        # Zapiš přímo do souboru
+        try:
+            with open(LOG_FILE, 'a') as f:
+                f.write(f"[{timestamp}] {message}\n")
+                f.flush()
+        except Exception as e:
+            pass  # Tiše ignoruj chyby
+        
+        # Pokus o syslog (nemusí fungovat)
+        try:
+            subprocess.run(['logger', '-t', 'devicemonitor', message], check=False)
+        except:
+            pass
+        
     elif level == 'DEBUG' and DEBUG_LOGGING:
-        subprocess.run(['logger', '-t', 'devicemonitor', f"DEBUG: {message}"])
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] DEBUG: {message}")
+        try:
+            with open(LOG_FILE, 'a') as f:
+                f.write(f"[{timestamp}] DEBUG: {message}\n")
+                f.flush()
+        except:
+            pass
+        
+        try:
+            subprocess.run(['logger', '-t', 'devicemonitor', f"DEBUG: {message}"], check=False)
+        except:
+            pass
 
 def load_config():
     """Načte runtime konfiguraci (enabled, email, interval)"""
@@ -138,14 +159,6 @@ def main():
     # Načti konfiguraci (včetně cest)
     config = load_config()
     
-    # Zapiš PID do souboru (použij cestu z konfigurace)
-    try:
-        with open(PID_FILE, 'w') as f:
-            f.write(str(os.getpid()))
-        log(f"PID file created: {PID_FILE}", level='INFO')
-    except Exception as e:
-        log(f"Failed to create PID file: {e}", level='INFO')
-    
     last_scan = 0
     last_config_state = None  # Pro sledování změn konfigurace
     last_interval = None      # Pro sledování změn intervalu
@@ -189,14 +202,6 @@ def main():
         except Exception as e:
             log(f"Daemon error: {e}", level='INFO')
             time.sleep(30)
-    
-    # Cleanup
-    try:
-        if os.path.exists(PID_FILE):
-            os.remove(PID_FILE)
-            log(f"PID file removed: {PID_FILE}", level='INFO')
-    except Exception as e:
-        log(f"Failed to remove PID file: {e}", level='INFO')
     
     log("Daemon stopped", level='INFO')
 
