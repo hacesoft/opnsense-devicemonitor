@@ -9,7 +9,7 @@
 
 **Automatické monitorování síťových zařízení s detekcí v reálném čase, identifikací výrobců a emailovými notifikacemi**
 
-[Funkce](#funkce) • [Instalace](#instalace) • [Dokumentace](#dokumentace) • [Přispívání](#přispívání)
+[Funkce](#funkce) • [Instalace](#instalace) • [Dokumentace](#DOKUMENTACE_CZ) • [Změny](#CHANGELOG)
 
 [🇬🇧 English](README.md) | 🇨🇿 Čeština
 
