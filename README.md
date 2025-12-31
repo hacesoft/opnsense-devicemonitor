@@ -6,8 +6,6 @@
 
 Automatic network device monitoring plugin for OPNsense firewall. Detects new devices via ARP scanning and sends email notifications.
 
-![License](https://img.shields.io/badge/license-BSD--2--Clause-green) ![OPNsense](https://img.shields.io/badge/OPNsense-24.x-orange)
-
 ---
 
 ## 📋 Table of Contents
@@ -67,7 +65,7 @@ This method is easiest for users not familiar with command line.
 
 #### Step 1: Download Latest Version
 
-Go to [**Releases**](../../releases) and download the latest archive:
+Go to [**Releases**](/releases) and download the latest archive:
 
 ```
 opnsense-devicemonitor31122025_1254.zip
