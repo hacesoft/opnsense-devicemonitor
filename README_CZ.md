@@ -65,7 +65,7 @@ Tato metoda je nejjednodušší pro uživatele, kteří nejsou zvyklí na přík
 
 #### Krok 1: Stáhni nejnovější verzi
 
-Jdi na [**Releases**](../../releases) a stáhni nejnovější archiv:
+Jdi na [**Releases**](/../../releases) /tree/main/releases a stáhni nejnovější archiv:
 
 ```
 opnsense-devicemonitor31122025_1339.zip
