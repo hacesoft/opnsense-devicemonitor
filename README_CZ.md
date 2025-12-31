@@ -1,12 +1,12 @@
 # OPNsense Device Monitor
 
-**[🇬🇧 English version](README_EN.md)** | **[📥 Nejnovější verze](../../releases/latest)** | **[📚 Všechna vydání](../../releases)** | **[🐛 Problémy](../../issues)** | **[👨‍💻 Další projekty autora](https://github.com/hacesoft?tab=repositories)**
+**[🇬🇧 English version](README_EN.md)** | **[👨‍💻 Další projekty autora](https://github.com/hacesoft?tab=repositories)**
 
 ---
 
 Plugin pro automatické sledování síťových zařízení v OPNsense firewallu. Detekuje nová zařízení pomocí ARP skenování a odesílá emailová upozornění.
 
-![Version](https://img.shields.io/badge/version-31122025__1254-blue) ![License](https://img.shields.io/badge/license-BSD--2--Clause-green) ![OPNsense](https://img.shields.io/badge/OPNsense-24.x-orange)
+![License](https://img.shields.io/badge/license-BSD--2--Clause-green) ![OPNsense](https://img.shields.io/badge/OPNsense-24.x-orange)
 
 ---
 
