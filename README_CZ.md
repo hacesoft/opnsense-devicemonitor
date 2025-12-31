@@ -1,258 +1,569 @@
-# OPNsense Device Monitor Plugin
+# OPNsense Device Monitor
 
-<div align="center">
-
-![OPNsense](https://img.shields.io/badge/OPNsense-24.x-orange?style=flat-square&logo=opnsense)
-![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python)
-![License](https://img.shields.io/badge/License-BSD--2--Clause-green?style=flat-square)
-![Verze](https://img.shields.io/badge/Verze-1.0.0-brightgreen?style=flat-square)
-
-**Automatické monitorování síťových zařízení s detekcí v reálném čase, identifikací výrobců a emailovými notifikacemi**
-
-[Funkce](#funkce) • [Instalace](#instalace) • [Dokumentace](DOKUMENTACE_CZ.md) • [Změny](CHANGELOG,md)
-
-[🇬🇧 English](README.md) | 🇨🇿 Čeština
-
-</div>
+**[🇬🇧 English version](README_EN.md)** | **[📥 Nejnovější verze](../../releases/latest)** | **[📚 Všechna vydání](../../releases)** | **[🐛 Problémy](../../issues)** | **[👨‍💻 Další projekty autora](https://github.com/hacesoft?tab=repositories)**
 
 ---
 
-## 📖 Přehled
+Plugin pro automatické sledování síťových zařízení v OPNsense firewallu. Detekuje nová zařízení pomocí ARP skenování a odesílá emailová upozornění.
 
-**OPNsense Device Monitor** je pokročilý plugin, který automaticky detekuje a monitoruje všechna zařízení připojená k vaší síti. Poskytuje přehled v reálném čase o síťové infrastruktuře, identifikuje výrobce zařízení, sleduje online/offline stav a upozorňuje vás na nová zařízení prostřednictvím emailových notifikací.
-
-### Proč Device Monitor?
-
-- 🔒 **Bezpečnost**: Okamžitá detekce neautorizovaných zařízení v síti
-- 📊 **Správa inventáře**: Automatická databáze IT majetku
-- 🔍 **Identifikace výrobců**: Rozpozná 40,000+ výrobců přes IEEE OUI databázi
-- 🌐 **Podpora multi-VLAN**: Monitoruje všechny VLANy současně
-- ⚡ **Výkon**: < 1% CPU, minimální dopad na systém
-- 📧 **Notifikace**: HTML emailové upozornění na nová zařízení
-- 🎯 **Přesnost**: pfctl-based detekce pro přesný online/offline stav
+![Version](https://img.shields.io/badge/version-31122025__1254-blue) ![License](https://img.shields.io/badge/license-BSD--2--Clause-green) ![OPNsense](https://img.shields.io/badge/OPNsense-24.x-orange)
 
 ---
 
-## ✨ Funkce
+## 📋 Obsah
 
-### Základní vlastnosti
-
-- **Automatické síťové skenování**
-  - Daemon běží na pozadí s konfigurovatelným intervalem (60-3600s)
-  - ARP tabulka, DHCP leases a Layer 2 skenování
-  - Podpora multi-VLAN s automatickou detekcí rozhraní
-  
-- **Detekce stavu v reálném čase**
-  - Analýza pfctl state table pro přesný online/offline stav
-  - Funguje se statickými DHCP rezervacemi
-  - Rychlost detekce pod sekundu (< 100ms)
-
-- **Identifikace výrobců**
-  - IEEE OUI databáze s 40,000+ výrobci
-  - Automatické aktualizace přes naplánované cron joby
-  - In-memory cache pro okamžité vyhledávání
-
-- **Emailové notifikace**
-  - HTML emaily s inline CSS (kompatibilní se všemi klienty)
-  - Detailní informace o zařízení: MAC, IP, hostname, vendor, VLAN
-  - Konfigurovatelný odesílatel a příjemce
-  - Funkce test emailu
-
-- **Webové GUI**
-  - Dashboard se statistikami (celkem, online, nová dnes)
-  - Interaktivní tabulka zařízení s vyhledáváním, řazením a stránkováním
-  - Správa nastavení
-  - Ovládání daemona (start/stop/restart)
-  - Manuální spuštění scanu
-
-- **Správa databáze**
-  - SQLite3 pro perzistenci
-  - Sledování historie zařízení
-  - Timestampy poslední aktivity
-  - Indexované dotazy pro výkon
+- [Co plugin dělá](#co-plugin-dělá)
+- [Funkce](#funkce)
+- [Instalace](#instalace)
+  - [Metoda 1: WinSCP + Ruční instalace](#metoda-1-winscp--ruční-instalace-doporučeno)
+  - [Metoda 2: Přímá SSH instalace](#metoda-2-přímá-ssh-instalace)
+- [Nastavení](#nastavení)
+- [Použití](#použití)
+- [Struktura pluginu](#struktura-pluginu)
+- [Řešení problémů](#řešení-problémů)
+- [Verzování](#verzování)
+- [Odinstalace](#odinstalace)
 
 ---
 
-## 🚀 Rychlý start
+## Co plugin dělá
+
+Plugin automaticky sleduje síť a upozorňuje na:
+
+- 🆕 **Nová zařízení** připojující se do sítě
+- 🔄 **Změny IP adres** u existujících zařízení
+- 📊 **Historie zařízení** s časovými údaji první/poslední detekce
+- 🌐 **VLAN filtrování** - sledování jen vybraných síťových segmentů
+
+---
+
+## Funkce
+
+✅ **Automatické ARP skenování** - detekce zařízení každých 5-30 minut  
+✅ **Emailová upozornění** - okamžité notifikace o nových zařízeních a změnách IP  
+✅ **VLAN filtrování** - sledování jen vybraných VLAN (např. LAN, VLAN20, VLAN50)  
+✅ **Historie IP adres** - více IP adres na jednu MAC adresu  
+✅ **Webový dashboard** - přehled statistik, ruční spuštění skenování  
+✅ **Správa zařízení** - mazání jednotlivých zařízení nebo celé databáze  
+✅ **Nastavitelné intervaly** - skenování každých 5, 10, 15 nebo 30 minut  
+✅ **Test email tlačítko** - ověření SMTP konfigurace  
+
+---
+
+## Instalace
 
 ### Požadavky
 
 - OPNsense 24.x nebo novější
-- Python 3.8+ (součást OPNsense)
-- Nakonfigurovaný SMTP server (pro emailové notifikace)
-- ~10 MB volného diskového prostoru
+- Funkční SMTP nastavení (System → Settings → Notifications)
+- SSH přístup povolen (System → Settings → Administration → Secure Shell)
+- Root heslo
 
-### Instalace
+---
 
-```bash
-# Stažení pluginu
-wget https://github.com/yourusername/opnsense-devicemonitor/releases/latest/download/DeviceMonitor_plugin.zip
+### Metoda 1: WinSCP + Ruční instalace (Doporučeno)
 
-# Rozbalení
-unzip DeviceMonitor_plugin.zip
-cd DeviceMonitor_plugin
+Tato metoda je nejjednodušší pro uživatele, kteří nejsou zvyklí na příkazovou řádku.
 
-# Instalace pomocí Makefile
-make install
+#### Krok 1: Stáhni nejnovější verzi
 
-# Spuštění daemona
-make start
+Jdi na [**Releases**](../../releases) a stáhni nejnovější archiv:
 
-# Kontrola stavu
-make status
+```
+opnsense-devicemonitor31122025_1254.zip
 ```
 
-**Alternativa**: Manuální instalace přes `install.sh` script
+**Název souboru:**
+- `opnsense-devicemonitor` = název pluginu
+- `31122025` = datum (DD.MM.RRRR)
+- `1254` = čas (HH:MM)
+- `.zip` = formát archivu
+
+**Příklad:** `opnsense-devicemonitor31122025_1254.zip` = 31. prosince 2025 ve 12:54
+
+**Poznámka:** Starší verze najdeš ve složce `/old/` v releases.
+
+#### Krok 2: Povolit SSH na OPNsense
+
+```
+1. Přihlas se do webového rozhraní OPNsense
+2. Jdi na: System → Settings → Administration
+3. Zapni "Secure Shell"
+4. Zaškrtni "Permit root user login"
+5. Login Shell: /bin/csh (výchozí je OK)
+6. Ulož
+```
+
+#### Krok 3: Nahraj soubor přes WinSCP
+
+**Stáhni WinSCP:** https://winscp.net/
+
+**Připoj se k OPNsense:**
+```
+Host:     tvoje.opnsense.ip.adresa
+Port:     22
+Uživatel: root
+Heslo:    tvoje-root-heslo
+```
+
+**Postup nahrání:**
+1. Ve WinSCP jdi do `/tmp/`
+2. Přetáhni `opnsense-devicemonitor31122025_1254.zip` do okna
+
+#### Krok 4: Instalace přes SSH
+
+Použij PuTTY (Windows) nebo Terminál (Mac/Linux) pro připojení:
+
+```bash
+ssh root@tvoje.opnsense.ip
+```
+
+Pak spusť:
+
+```bash
+# Přejdi do složky s archivem
+cd /tmp
+
+# Rozbal archiv
+unzip opnsense-devicemonitor31122025_1254.zip
+cd opnsense-devicemonitor
+
+# Spusť instalaci
+sh install.sh
+```
+
+**Poznámka:** Restart OPNsense **NENÍ potřeba** - instalační script se o vše postará!
+
+---
+
+### Metoda 2: Přímá SSH instalace
+
+Pro pokročilé uživatele znalé příkazové řádky:
+
+```bash
+# Připoj se přes SSH
+ssh root@tvoje.opnsense.ip
+
+# Stáhni nejnovější verzi (UPRAV URL!)
+cd /tmp
+fetch https://github.com/hacesoft/opnsense-devicemonitor/releases/download/v31122025_1254/opnsense-devicemonitor31122025_1254.zip
+
+# Rozbal
+unzip opnsense-devicemonitor31122025_1254.zip
+cd opnsense-devicemonitor
+
+# Instaluj
+sh install.sh
+```
+
+**Pro starší verze:**
+
+Pokud chceš nainstalovat starší verzi, uprav URL:
+
+```bash
+fetch https://github.com/hacesoft/opnsense-devicemonitor/releases/download/old/opnsense-devicemonitorDDMMRRRR_HHMM.zip
+```
+
+---
+
+## Nastavení
+
+Po instalaci jdi na: **Services → DeviceMonitor → Settings**
 
 ### Základní konfigurace
 
-1. **Konfigurace SMTP** (System → Settings → Notifications → SMTP)
-   ```
-   SMTP Server: smtp.gmail.com
-   Port: 587
-   Šifrování: STARTTLS
-   ```
+| Nastavení | Popis | Příklad |
+|-----------|-------|---------|
+| **Enable Device Monitor** | Zapnout/vypnout sledování | ✅ Zaškrtnuto |
+| **Email (To)** | Tvůj email pro upozornění | `admin@example.com` |
+| **Email (From)** | Email odesílatele | `opnsense@tvojadomena.cz` |
+| **Scan Interval** | Jak často skenovat | `5 minutes` |
+| **VLAN Filter** | Které VLAN sledovat | `LAN,VLAN20,VLAN50` |
 
-2. **Konfigurace Device Monitor** (Services → DeviceMonitor → Settings)
-   ```
-   ☑ Zapnout monitoring
-   Email To: admin@example.com
-   Interval skenování: 300 sekund
-   ```
+### Příklady VLAN filtru
 
-3. **Stažení OUI databáze** (Services → DeviceMonitor → OUI Management)
-   ```
-   Klikni "Download OUI Database"
-   Zapni Auto-Update (volitelné)
-   ```
+**Sledovat všechny sítě:**
+```
+LAN,VLAN11,VLAN20,VLAN30,VLAN50,VLAN70,VLAN80
+```
 
-4. **Zobrazení zařízení** (Services → DeviceMonitor → Devices)
+**Sledovat jen LAN a hostovskou síť:**
+```
+LAN,VLAN50
+```
 
----
+**Sledovat jen jedno VLAN:**
+```
+VLAN20
+```
 
-## 📚 Dokumentace
+**Důležité:** Názvy VLAN musí přesně odpovídat názvům rozhraní!
 
-### Kompletní dokumentace (česky)
-- [📖 Kompletní dokumentace](docs/DOKUMENTACE_CZ.md) - Úplná dokumentace v češtině
-- [📦 Instalační návod](docs/INSTALACE_CZ.md) - Detailní instalační instrukce
-- [⚙️ Návod ke konfiguraci](docs/KONFIGURACE_CZ.md) - Kompletní reference konfigurace
-- [🔧 Řešení problémů](docs/TROUBLESHOOTING_CZ.md) - Časté problémy a řešení
+### Test konfigurace
 
-### English Documentation
-- [Installation Guide](docs/INSTALLATION.md)
-- [Configuration Guide](docs/CONFIGURATION.md)
-- [API Documentation](docs/API.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
+1. Klikni na tlačítko **Test Email**
+2. Zkontroluj schránku
+3. Pokud email nedorazil:
+   - Ověř SMTP nastavení: System → Settings → Notifications
+   - Zkontroluj spam složku
+   - Prohlédni logy: `grep devicemonitor /var/log/system.log`
 
 ---
 
-## 🛠️ Technologie
+## Použití
 
-| Komponenta | Technologie | Účel |
-|-----------|------------|------|
-| **Backend** | Python 3.8+ | Daemon a logika skenování |
-| **Frontend** | PHP 8.1+ (OPNsense MVC) | Webové GUI |
-| **Databáze** | SQLite3 | Perzistence zařízení |
-| **Detekce** | pfctl, ARP, tcpdump | Síťové skenování |
-| **Notifikace** | SMTP (sendmail) | Emailové upozornění |
-| **Vendor DB** | IEEE OUI | Identifikace výrobců |
+### Dashboard
+
+**Umístění:** Services → DeviceMonitor → Dashboard
+
+**Zobrazuje:**
+- 📊 Total Devices - všechna kdy detekovaná zařízení
+- 🆕 New Today - zařízení detekovaná dnes
+- ⏰ Last Cron Run - časová značka posledního automatického skenování
+- 🔄 Scan Now - tlačítko pro ruční skenování
+- 📋 View All Devices - odkaz na seznam zařízení
+
+### Seznam zařízení
+
+**Umístění:** Services → DeviceMonitor → Devices
+
+**Sloupce tabulky:**
+- MAC adresa
+- IP adresa
+- Hostname (zjištěno přes reverse DNS)
+- VLAN (síťový segment)
+- First Seen (datum/čas první detekce)
+- Last Seen (nejnovější detekce)
+- Actions (ikona koše pro smazání)
+
+**Operace:**
+- ☑️ **Vybrat více** - checkbox vlevo
+- 🗑️ **Delete Selected** - smazat vybraná zařízení
+- 🗑️ **Individuální mazání** - ikona koše u každého zařízení
+
+### Stránka nastavení
+
+**Umístění:** Services → DeviceMonitor → Settings
+
+**Akce:**
+- 💾 **Save** - uložit konfiguraci
+- ✉️ **Test Email** - ověřit funkčnost SMTP
+- ⚠️ **Clear Database** - smazat VŠECHNY záznamy zařízení (vyžaduje potvrzení)
 
 ---
 
-## 📊 Výkon
+## Struktura pluginu
 
-| Metrika | Hodnota |
-|---------|---------|
-| **Využití CPU** | < 1% (během scanu), 0% (idle) |
-| **Využití paměti** | ~60 MB (včetně OUI cache) |
-| **Čas scanu** | 10-15 sekund (celá síť) |
-| **Rychlost detekce** | < 100 ms (pfctl dotaz) |
-| **Velikost databáze** | ~1 MB (100 zařízení) |
-| **Síťový dopad** | Minimální (< 0.01 Mbps) |
+### Adresářová struktura
 
----
+```
+opnsense-devicemonitor/
+├── install.sh                          # Instalační script
+├── uninstall.sh                        # Odinstalační script
+├── README.md                           # Dokumentace (CZ)
+├── README_EN.md                        # Dokumentace (EN)
+├── LICENSE                             # BSD 2-Clause licence
+├── +MANIFEST                           # PKG metadata
+├── +INSTALL                            # Post-install hook
+├── +DEINSTALL                          # Post-uninstall hook
+├── etc/
+│   └── inc/
+│       └── plugins.inc.d/
+│           └── devicemonitor.inc       # Plugin hook
+└── usr/
+    └── local/
+        └── opnsense/
+            ├── mvc/app/
+            │   ├── controllers/
+            │   │   └── OPNsense/DeviceMonitor/
+            │   │       ├── IndexController.php       # Hlavní controller
+            │   │       ├── Api/
+            │   │       │   ├── SettingsController.php   # API nastavení
+            │   │       │   ├── DevicesController.php    # API zařízení
+            │   │       │   └── ServiceController.php    # API služby
+            │   │       └── forms/
+            │   │           └── general.xml              # Formulář definice
+            │   ├── models/
+            │   │   └── OPNsense/DeviceMonitor/
+            │   │       ├── DeviceMonitor.xml         # Model XML
+            │   │       ├── DeviceMonitor.php         # Model PHP
+            │   │       ├── Menu/
+            │   │       │   └── Menu.xml              # Menu definice
+            │   │       └── ACL/
+            │   │           └── ACL.xml               # ACL definice
+            │   └── views/
+            │       └── OPNsense/DeviceMonitor/
+            │           ├── index.volt                # Dashboard view
+            │           ├── devices.volt              # Zařízení view
+            │           └── settings.volt             # Nastavení view
+            ├── scripts/devicemonitor/
+            │   ├── scan.sh                           # ARP scanner script
+            │   └── testemail.sh                      # Test email script
+            └── service/conf/actions.d/
+                └── actions_devicemonitor.conf        # Configd actions
+```
 
-## 🤝 Přispívání
+### Databáze a logy
 
-Vítáme příspěvky! Prosím přečtěte si [CONTRIBUTING.md](CONTRIBUTING.md) pro detaily.
+```
+/var/db/known_devices.db                # SQLite databáze zařízení
+/var/log/devicemonitor_cron.log         # Log cron běhů
+```
 
-### Vývojové prostředí
+### Formát databáze
 
-```bash
-# Klonování repozitáře
-git clone https://github.com/yourusername/opnsense-devicemonitor.git
-cd opnsense-devicemonitor
+**Soubor:** `/var/db/known_devices.db`
 
-# Instalace vývojových závislostí
-make dev-install
+**Formát:** Hodnoty oddělené rourou (|)
 
-# Spuštění testů
-make test
+```
+MAC|IP|Hostname|PrvníDetekce|PosledníDetekce|Zdroj|Rozhraní|VLAN
+```
 
-# Build pluginu
-make build
+**Příklad záznamu:**
+```
+aa:bb:cc:dd:ee:ff|192.168.1.100|PC-Honza|2025-11-30 10:15:23|2025-12-01 08:45:12|ARP|igc0|LAN
 ```
 
 ---
 
-## 📝 Changelog
+## Jak to funguje
 
-Viz [CHANGELOG.md](CHANGELOG.md) pro detailní historii verzí.
+### Technický přehled
 
-### Nejnovější vydání (v1.0.0)
+1. **Cron Job**: OPNsense cron spouští scan script každých X minut (nastavený interval)
+2. **ARP Scan**: Script spustí `arp -an` pro získání aktuálních zařízení
+3. **VLAN Filtrování**: Zpracovávají se jen zařízení na povolených VLAN
+4. **Kontrola databáze**: Porovnání aktuálních zařízení s uloženou databází
+5. **Emailová upozornění**: Odeslání notifikace při:
+   - Detekci nové MAC adresy
+   - Existující MAC s jinou IP adresou
+6. **Aktualizace databáze**: Záznam informací o zařízení do SQLite databáze
+7. **Logování**: Zápis časové značky do `/var/log/devicemonitor_cron.log`
 
-- ✨ První veřejné vydání
-- 🎯 pfctl-based detekce pro přesný online/offline stav
-- 📊 Podpora multi-VLAN
-- 📧 HTML emailové notifikace
-- 🏷️ IEEE OUI identifikace výrobců
-- 🌐 Kompletní webové GUI
+### Ruční příkazy
 
----
+```bash
+# Test emailové notifikace
+configctl devicemonitor testemail
 
-## 📜 Licence
+# Spuštění ručního skenování
+configctl devicemonitor scan
 
-Tento projekt je licencován pod **BSD 2-Clause License** - viz soubor [LICENSE](LICENSE) pro detaily.
+# Zobrazení databáze
+cat /var/db/known_devices.db
 
----
+# Kontrola posledního cron spuštění
+cat /var/log/devicemonitor_cron.log
 
-## 🙏 Poděkování
-
-- **OPNsense Tým** - Za vynikající firewallovou platformu
-- **IEEE** - Za údržbu OUI databáze
-- **Přispěvatelé** - Všem, kdo přispěli kódem, hlášeními chyb nebo návrhy
-
----
-
-## 📞 Podpora
-
-### Komunitní podpora
-
-- **GitHub Issues**: [Nahlásit chybu nebo požádat o funkci](https://github.com/yourusername/opnsense-devicemonitor/issues)
-- **OPNsense Fórum**: [Diskutovat na fóru](https://forum.opnsense.org/)
-- **Dokumentace**: [Kompletní dokumentace](docs/)
+# Zobrazení logů pluginu
+grep devicemonitor /var/log/system.log | tail -20
+```
 
 ---
 
-## 🗺️ Plánované funkce
+## Řešení problémů
 
-- [ ] Webový dashboard s grafy (Chart.js)
-- [ ] Slack/Discord/Telegram notifikace
-- [ ] Seskupování a tagování zařízení
-- [ ] Historické statistiky a trendy
-- [ ] REST API pro externí integrace
-- [ ] Mobilní aplikace (iOS/Android)
-- [ ] Whitelist/blacklist MAC adres
-- [ ] Vlastní názvy a poznámky k zařízením
-- [ ] Export do CSV/PDF
-- [ ] Integrace s nástroji pro mapování sítě
+### Menu se nezobrazuje po instalaci
+
+**Příznaky:** V menu Services není položka "DeviceMonitor"
+
+**Řešení 1 - Vymazání cache:**
+```bash
+rm -f /tmp/opnsense_menu_cache.xml
+rm -f /tmp/opnsense_acl_cache.json
+configctl webgui restart
+```
+
+**Řešení 2 - Restart OPNsense:**
+```bash
+shutdown -r now
+```
 
 ---
 
-<div align="center">
+### Stránka Settings je prázdná
 
-**Vytvořeno s ❤️ od [Hacesoft](https://github.com/hacesoft)**
+**Příznaky:** Na stránce Settings jsou jen tlačítka, chybí formulářová pole
 
-[⬆ Zpět nahoru](#opnsense-device-monitor-plugin)
+**Diagnostika:**
+```bash
+# Zkontroluj zda existuje soubor forms
+ls -la /usr/local/opnsense/mvc/app/controllers/OPNsense/DeviceMonitor/forms/general.xml
+```
 
-</div>
+**Řešení:**
+```bash
+# Restart webgui
+configctl webgui restart
+
+# Pokud stále nefunguje, přeinstaluj plugin
+cd /tmp/opnsense-devicemonitor
+sh install.sh
+```
+
+---
+
+### Emaily se neposílají
+
+**Kontrola SMTP konfigurace:**
+1. System → Settings → Notifications
+2. Test pomocí vestavěného testu OPNsense: System → Settings → Notifications → Test
+3. Pokud OPNsense test selže, nejprve oprav SMTP nastavení
+
+**Kontrola konfigurace pluginu:**
+1. Services → DeviceMonitor → Settings
+2. Klikni "Test Email"
+3. Zkontroluj že emailová adresa je správná
+
+**Kontrola logů:**
+```bash
+# Zobrazení logů pluginu
+grep devicemonitor /var/log/system.log
+
+# Zobrazení SMTP logů
+grep sendmail /var/log/maillog
+```
+
+---
+
+### Zařízení se nedetekují
+
+**Kontrola běhu skenování:**
+```bash
+# Zobraz čas posledního cron spuštění
+cat /var/log/devicemonitor_cron.log
+
+# Mělo by zobrazit nedávnou časovou značku: 2025-12-01 14:30:15
+```
+
+**Kontrola VLAN filtru:**
+- Ujisti se že názvy VLAN přesně odpovídají rozhraním
+- Rozlišují se velká/malá písmena: `VLAN20` ≠ `vlan20`
+- Zkontroluj názvy rozhraní: Interfaces → Assignments
+
+**Spuštění ručního skenování:**
+```bash
+# Mělo by vypsat detekce zařízení
+configctl devicemonitor scan
+```
+
+---
+
+### Instalační script selhává
+
+**Chyba: "Command not found" nebo "not found" zprávy**
+
+**Příčina:** Windows konce řádků (CRLF) v souborech scriptu
+
+**Řešení:**
+```bash
+cd /tmp/opnsense-devicemonitor
+sed -i '' 's/\r$//' install.sh
+sed -i '' 's/\r$//' uninstall.sh
+sh install.sh
+```
+
+---
+
+## Verzování
+
+### Jak jsou pojmenovány verze
+
+**Formát archivu:**
+```
+opnsense-devicemonitorDDMMRRRR_HHMM.zip
+```
+
+Kde:
+- `DD` = Den (01-31)
+- `MM` = Měsíc (01-12)
+- `RRRR` = Rok (4 číslice)
+- `HH` = Hodina (00-23, 24hodinový formát)
+- `MM` = Minuty (00-59)
+
+**Příklady:**
+- `opnsense-devicemonitor31122025_1254.zip` = 31. prosince 2025 ve 12:54
+- `opnsense-devicemonitor15012026_0920.zip` = 15. ledna 2026 v 9:20
+
+### Organizace verzí
+
+**Aktuální verze:**
+- Nejnovější vydání je vždy na hlavní stránce [Releases](../../releases)
+- Kompletní archiv obsahuje celý plugin připravený k instalaci
+
+**Staré verze:**
+- Předchozí vydání přesunuta do složky `/old/`
+- Dostupné pro rollback pokud je potřeba
+- Pojmenovány stejným formátem časové značky
+
+### Změny oproti předchozí verzi
+
+**Verze 31122025_1254:**
+- První veřejné vydání
+- Kompletní PKG struktura
+- Dokumentace v češtině a angličtině
+
+---
+
+## Odinstalace
+
+### Odstranění pluginu
+
+```bash
+# Přejdi do instalační složky
+cd /tmp/opnsense-devicemonitor
+
+# Spusť odinstalační script
+sh uninstall.sh
+```
+
+**Co se odstraní:**
+- Všechny soubory pluginu z `/usr/local/opnsense/`
+- Plugin hook z `/etc/inc/plugins.inc.d/`
+- Cron joby
+- Menu cache
+
+**Co zůstane zachováno:**
+- Databáze: `/var/db/known_devices.db`
+- Logy: `/var/log/devicemonitor_cron.log`
+
+### Úplné odstranění
+
+Pro odstranění i databáze a logů:
+
+```bash
+rm -f /var/db/known_devices.db
+rm -f /var/log/devicemonitor_cron.log
+```
+
+---
+
+## Podpora
+
+### Pomoc
+
+- 🐛 **Hlášení chyb:** [GitHub Issues](../../issues/new)
+- 💬 **Dotazy:** [GitHub Discussions](../../discussions)
+- 📧 **Email:** hacesoft@mujmail.cz
+
+---
+
+## Licence
+
+BSD 2-Clause License - viz soubor [LICENSE](LICENSE)
+
+---
+
+## Autor
+
+**Hacesoft**
+
+- 🌐 Web: [hacesoft.cz](https://hacesoft.cz)
+- 📧 Email: hacesoft@mujmail.cz
+- 💻 GitHub: [@hacesoft](https://github.com/hacesoft)
+- 📦 **Všechny projekty:** [github.com/hacesoft?tab=repositories](https://github.com/hacesoft?tab=repositories)
+
+---
+
+**[⬆ Zpět nahoru](#opnsense-device-monitor)**
