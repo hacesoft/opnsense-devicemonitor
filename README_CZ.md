@@ -1,6 +1,6 @@
 # OPNsense Device Monitor
 
-**[🇬🇧 English version](README_EN.md)** | **[👨‍💻 Další projekty autora](https://github.com/hacesoft?tab=repositories)**
+**[🇬🇧 English version](README.md)** | **[👨‍💻 Další projekty autora](https://github.com/hacesoft?tab=repositories)**
 
 ---
 
