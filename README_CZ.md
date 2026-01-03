@@ -6,11 +6,6 @@
 
 Plugin pro automatické sledování síťových zařízení v OPNsense firewallu. Detekuje nová zařízení pomocí ARP skenování a odesílá emailová upozornění.
 
-<img width="1593" height="659" alt="image" src="https://github.com/user-attachments/assets/ce925204-6eb7-4f79-9fcb-c8ae64b1d4a6" />
-<img width="1658" height="763" alt="image" src="https://github.com/user-attachments/assets/cddec25c-e0bc-426d-a91c-1e0ecd51f31a" />
-<img width="1572" height="812" alt="image" src="https://github.com/user-attachments/assets/c20f1663-eaf4-4758-b5a3-1c767a55ec88" />
-<img width="961" height="829" alt="image" src="https://github.com/user-attachments/assets/f86eb937-d72a-4273-9f11-fdcc49d30276" />
-
 ---
 
 ## 📋 Obsah
@@ -70,7 +65,7 @@ Tato metoda je nejjednodušší pro uživatele, kteří nejsou zvyklí na přík
 
 #### Krok 1: Stáhni nejnovější verzi
 
-Jdi na [**Releases**](/releases) a stáhni nejnovější archiv:
+Jdi na [**Releases**](../../releases) a stáhni nejnovější archiv:
 
 ```
 opnsense-devicemonitor31122025_1339.zip
@@ -568,24 +563,5 @@ BSD 2-Clause License - viz soubor [LICENSE](LICENSE)
 - 📦 **Všechny projekty:** [github.com/hacesoft?tab=repositories](https://github.com/hacesoft?tab=repositories)
 
 ---
----
-
-## Pracujte pečlivě! Dvakrát měř, jednou řež...
-
----
-
-## Zřeknutí se odpovědnosti
-
-Autor tohoto projektu neposkytuje žádné záruky, výslovné ani implicitní, ohledně správnosti, spolehlivosti, funkčnosti nebo vhodnosti k jakémukoli účelu. Veškeré použití tohoto softwaru, kódu, schémat, návodů, technických řešení, produktů a jakýchkoli dalších poskytnutých materiálů je na vlastní odpovědnost uživatele.
-
-Autor nenese žádnou odpovědnost za jakékoli škody, ztráty, finanční náklady, přímé či nepřímé škody vzniklé v důsledku použití těchto materiálů, a to včetně, ale nejen, ztráty dat, poškození zařízení, výpadků systému, poruchy elektrických či jiných instalací, požárů, ztrát příjmů nebo jiných nepředvídatelných následků.
-
-Uživatel bere na vědomí, že jakékoli úpravy, sestavování, instalace, zapojení či implementace na základě poskytnutých informací provádí výhradně na vlastní riziko. Autor neposkytuje žádné garance funkčnosti, bezpečnosti ani souladu s platnými právními normami a předpisy.
-
-Uživatel se zavazuje, že nevyužije žádné právní kroky vůči autorovi v souvislosti s jakýmikoli škodami nebo jinými nároky vyplývajícími z používání tohoto softwaru, produktů, schémat nebo návodů. Jakékoli právní nároky vůči autorovi jsou tímto výslovně vyloučeny a nevymahatelné, a to i soudní cestou.
-
-Použitím těchto materiálů uživatel potvrzuje svůj souhlas s výše uvedenými podmínkami. Pokud s nimi nesouhlasíte, nepoužívejte tento software, schémata, návody ani jiné poskytnuté materiály.
-
-
 
 **[⬆ Zpět nahoru](#opnsense-device-monitor)**

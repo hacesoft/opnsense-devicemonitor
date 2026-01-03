@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<service>
+    <name>devicemonitor</name>
+    <description>Device Monitor</description>
+    <pidfile>/var/run/devicemonitor.pid</pidfile>
+</service>

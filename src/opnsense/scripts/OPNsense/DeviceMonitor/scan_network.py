@@ -108,8 +108,33 @@ def load_oui_database():
     except Exception as e:
         log(f"Error loading OUI database: {e}")
 
+def is_locally_administered(mac_address):
+    """
+    Detekuje jestli je MAC adresa lokálně administrovaná (virtuální/náhodná)
+    Kontroluje druhý bit prvního oktetu (bit 1 zleva)
+    
+    Příklady:
+    - 76:d1:1d:a6:a0:56 → True (lokální)
+    - 00:1a:2b:3c:4d:5e → False (výrobce)
+    """
+    try:
+        # Převeď první oktet (první 2 hex znaky) na integer
+        first_byte = int(mac_address.replace(':', '').replace('-', '')[:2], 16)
+        
+        # Testuj bit 1 (druhý zleva): 0x02 = 00000010
+        # Pokud je nastavený → lokálně administrovaná
+        return (first_byte & 0x02) != 0
+    except:
+        return False
+    
 def lookup_vendor(mac_address):
     """Zjistí výrobce z MAC adresy"""
+    
+    # NEJDŘÍV zkontroluj jestli je to lokální MAC
+    if is_locally_administered(mac_address):
+        return 'Locally Administered (Virtual/Random)'
+    
+    # Pokud ne, hledej v OUI databázi
     if not oui_cache:
         load_oui_database()
     
