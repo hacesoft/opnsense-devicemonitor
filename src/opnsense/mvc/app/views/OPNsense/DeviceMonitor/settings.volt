@@ -35,19 +35,80 @@
                                     <small class="text-muted">{{ lang._('Enable automatic network monitoring') }}</small>
                                 </td>
                             </tr>
+                            <!-- EMAIL NOTIFICATIONS -->
                             <tr>
-                                <td><strong>{{ lang._('Email Recipient') }}</strong></td>
-                                <td>
-                                    <input type="email" id="email_to" class="form-control" placeholder="admin@example.com" />
-                                    <small class="text-muted">{{ lang._('Where to send notifications about new devices') }}</small>
+                                <td colspan="2" style="background-color: #f5f5f5; padding: 10px; color: #333;">
+                                    <strong>📧 Email Notifications</strong>
                                 </td>
                             </tr>
                             <tr>
-                                <td><strong>{{ lang._('Email Sender') }}</strong></td>
-                                <td>
-                                    <input type="email" id="email_from" class="form-control" placeholder="devicemonitor@opnsense.local" value="devicemonitor@opnsense.local" />
-                                    <small class="text-muted">{{ lang._('From which address to send notifications') }}</small>
+                                <td style="width: 25%; vertical-align: top;">
+                                    <label>
+                                        <input type="checkbox" id="email_enabled" />
+                                        <strong>{{ lang._('Enable Email') }}</strong>
+                                    </label>
                                 </td>
+                                <td>
+                                    <div id="email_config">
+                                        <label>{{ lang._('Email Recipient') }}:</label>
+                                        <input type="email" id="email_to" class="form-control" placeholder="admin@example.com" />
+                                        <small class="text-muted">{{ lang._('Where to send notifications') }}</small>
+                                        <br><br>
+                                        
+                                        <label>{{ lang._('Email Sender') }}:</label>
+                                        <input type="email" id="email_from" class="form-control" placeholder="devicemonitor@opnsense.local" value="devicemonitor@opnsense.local" />
+                                        <small class="text-muted">{{ lang._('From address') }}</small>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- WEBHOOK NOTIFICATIONS -->
+                            <tr>
+                                <td colspan="2" style="background-color: #f5f5f5; padding: 10px; color: #333;">
+                                    <strong>🔔 Webhook Notifications</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width: 25%; vertical-align: top;">
+                                    <label>
+                                        <input type="checkbox" id="webhook_enabled" />
+                                        <strong>{{ lang._('Enable Webhook') }}</strong>
+                                    </label>
+                                </td>
+                                <td>
+                                    <div id="webhook_config">
+                                        <label>{{ lang._('Webhook URL') }}:</label>
+                                        <input type="text" id="webhook_url" class="form-control" placeholder="https://ntfy.sh/your_topic" style="width: 100%; max-width: 500px;" />
+                                        <div style="margin-top: 10px; padding: 12px; background: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">
+                                            <div style="font-weight: 600; color: #495057; margin-bottom: 8px;">💡 Examples:</div>
+                                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                                <div>
+                                                    <span style="display: inline-block; background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-right: 8px;">ntfy.sh</span>
+                                                    <code style="color: #0066cc; background: #fff; padding: 3px 6px; border-radius: 3px; font-size: 12px;">https://ntfy.sh/opnsense_monitor</code>
+                                                </div>
+                                                <div>
+                                                    <span style="display: inline-block; background: #ede7f6; color: #5e35b1; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-right: 8px;">Discord</span>
+                                                    <code style="color: #0066cc; background: #fff; padding: 3px 6px; border-radius: 3px; font-size: 12px;">https://discord.com/api/webhooks/...</code>
+                                                </div>
+                                                <div>
+                                                    <span style="display: inline-block; background: #e8f5e9; color: #388e3c; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-right: 8px;">Custom</span>
+                                                    <code style="color: #0066cc; background: #fff; padding: 3px 6px; border-radius: 3px; font-size: 12px;">https://your-server.com/webhook</code>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <br><br>
+                                        
+                                        <button type="button" id="test_webhook" class="btn btn-primary btn-sm">
+                                            🧪 {{ lang._('Send Test') }}
+                                        </button>
+                                        <span id="webhook_test_result" style="margin-left: 10px; font-weight: bold;"></span>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- ODDĚLENÍ -->
+                            <tr>
+                                <td colspan="2"><hr></td>
                             </tr>
                             <tr>
                                 <td><strong>{{ lang._('Scan Interval') }} (sekundy)</strong></td>
@@ -287,12 +348,7 @@ $().ready(function() {
             url: '/api/devicemonitor/config/get',
             type: 'GET',
             success: function(data) {
-                if (data.email_to) {
-                    $('#email_to').val(data.email_to);
-                }
-                if (data.email_from) {
-                    $('#email_from').val(data.email_from);
-                }
+                // Základní nastavení
                 if (data.enabled == '1') {
                     $('#enabled').prop('checked', true);
                 }
@@ -302,10 +358,50 @@ $().ready(function() {
                 if (data.show_domain == '1') {
                     $('#show_domain').prop('checked', true);
                 }
+                
+                // Email konfigurace
+                $('#email_enabled').prop('checked', data.email_enabled === '1');
+                if (data.email_to) {
+                    $('#email_to').val(data.email_to);
+                }
+                if (data.email_from) {
+                    $('#email_from').val(data.email_from);
+                }
+                
+                // Webhook konfigurace
+                $('#webhook_enabled').prop('checked', data.webhook_enabled === '1');
+                if (data.webhook_url) {
+                    $('#webhook_url').val(data.webhook_url);
+                }
+                
+                // Show/hide config sections
+                toggleEmailConfig();
+                toggleWebhookConfig();
             }
         });
     }
+
+    // Show/Hide email config
+    function toggleEmailConfig() {
+        if ($('#email_enabled').prop('checked')) {
+            $('#email_config').slideDown();
+        } else {
+            $('#email_config').slideUp();
+        }
+    }
+
+    // Show/Hide webhook config
+    function toggleWebhookConfig() {
+        if ($('#webhook_enabled').prop('checked')) {
+            $('#webhook_config').slideDown();
+        } else {
+            $('#webhook_config').slideUp();
+        }
+    }
     
+    // Attach handlers
+    $('#email_enabled').change(toggleEmailConfig);
+    $('#webhook_enabled').change(toggleWebhookConfig);
     loadConfig();
     
     $('#btn-save').click(function() {
@@ -315,8 +411,11 @@ $().ready(function() {
         
         var config = {
             enabled: $('#enabled').is(':checked') ? '1' : '0',
+            email_enabled: $('#email_enabled').is(':checked') ? '1' : '0',
             email_to: $('#email_to').val(),
             email_from: $('#email_from').val(),
+            webhook_enabled: $('#webhook_enabled').is(':checked') ? '1' : '0',
+            webhook_url: $('#webhook_url').val(),
             scan_interval: $('#scan_interval').val(),
             show_domain: $('#show_domain').is(':checked') ? '1' : '0',
         };
@@ -338,6 +437,34 @@ $().ready(function() {
                 $btn.prop('disabled', false).html(originalHtml);
                 //showToast('Chyba při ukládání konfigurace', 'error');
                 showToast(translations.configSave_error, 'error');
+            }
+        });
+    });
+
+    // Test webhook
+    $('#test_webhook').click(function() {
+        var url = $('#webhook_url').val();
+        
+        if (!url) {
+            $('#webhook_test_result').html('<span style="color: red;">❌ Enter webhook URL first</span>');
+            return;
+        }
+        
+        $('#webhook_test_result').html('<span style="color: blue;">⏳ Sending...</span>');
+        
+        $.ajax({
+            url: '/api/devicemonitor/config/testWebhook',
+            type: 'POST',
+            data: { webhook_url: url },
+            success: function(data) {
+                if (data.result === 'ok') {
+                    $('#webhook_test_result').html('<span style="color: green;">✅ Test sent!</span>');
+                } else {
+                    $('#webhook_test_result').html('<span style="color: red;">❌ ' + (data.message || 'Failed') + '</span>');
+                }
+            },
+            error: function() {
+                $('#webhook_test_result').html('<span style="color: red;">❌ Request failed</span>');
             }
         });
     });

@@ -41,9 +41,10 @@ DEFAULT_CONFIG = _defaults['config']
 oui_cache = {}
 
 def log(message):
-    """Logování"""
+    """Logování do souboru /var/log/devicemonitor.log"""
     if DEBUG_LOGGING:
-        subprocess.run(['logger', '-t', 'devicemonitor', message])
+        with open("/var/log/devicemonitor.log", "a") as f:
+            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
 
 
 def load_config():
@@ -54,10 +55,13 @@ def load_config():
             log(f"Config file not found: {CONFIG_FILE}, using defaults")
         return {
             'enabled': DEFAULT_CONFIG['enabled'] == '1',
-            'email_to': DEFAULT_CONFIG['email_to'],
-            'email_from': DEFAULT_CONFIG['email_from'],
-            'scan_interval': int(DEFAULT_CONFIG['scan_interval']),
-            'show_domain': DEFAULT_CONFIG['show_domain'] == '1'
+            'email_enabled': DEFAULT_CONFIG.get('email_enabled', '1') == '1',
+            'email_to': DEFAULT_CONFIG.get('email_to', ''),
+            'email_from': DEFAULT_CONFIG.get('email_from', 'devicemonitor@opnsense.local'),
+            'webhook_enabled': DEFAULT_CONFIG.get('webhook_enabled', '0') == '1',
+            'webhook_url': DEFAULT_CONFIG.get('webhook_url', ''),
+            'scan_interval': int(DEFAULT_CONFIG.get('scan_interval', 300)),
+            'show_domain': DEFAULT_CONFIG.get('show_domain', '0') == '1'
         }
     
     try:
@@ -66,8 +70,11 @@ def load_config():
             
             return {
                 'enabled': config.get('enabled', '0') == '1',
+                'email_enabled': config.get('email_enabled', '1') == '1',
                 'email_to': config.get('email_to', ''),
-                'email_from': config.get('email_from', DEFAULT_CONFIG['email_from']),
+                'email_from': config.get('email_from', 'devicemonitor@opnsense.local'),
+                'webhook_enabled': config.get('webhook_enabled', '0') == '1',
+                'webhook_url': config.get('webhook_url', ''),
                 'scan_interval': int(config.get('scan_interval', 300)),
                 'show_domain': config.get('show_domain', '0') == '1'
             }
@@ -76,8 +83,11 @@ def load_config():
             log(f"Config load error: {e}")
         return {
             'enabled': False,
+            'email_enabled': True,
             'email_to': '',
-            'email_from': DEFAULT_CONFIG['email_from'],
+            'email_from': 'devicemonitor@opnsense.local',
+            'webhook_enabled': False,
+            'webhook_url': '',
             'scan_interval': 300,
             'show_domain': False
         }
@@ -108,6 +118,137 @@ def load_oui_database():
     except Exception as e:
         log(f"Error loading OUI database: {e}")
 
+def send_webhook(new_devices, config):
+    """
+    Webhook notifikace - posílá JSON data na URL
+    Podporuje:
+    - ntfy.sh (notifikace na mobil)
+    - Discord
+    - Generic webhooks (jakékoli URL)
+    """
+    import requests
+
+    webhook_url = config.get('webhook_url')
+    webhook_enabled = config.get('webhook_enabled', False)
+
+    if not webhook_enabled or not webhook_url or not new_devices:
+        log(f"[WEBHOOK] SKIPPED! enabled={webhook_enabled}, url={'yes' if webhook_url else 'NO'}, devices={len(new_devices) if new_devices else 0}")
+        return False
+
+    log(f"[WEBHOOK] Preparing request to {webhook_url}...")
+
+    try:
+        count = len(new_devices)
+        devices_list = []
+        for dev in new_devices:
+            devices_list.append({
+                'mac': dev['mac'],
+                'ip': dev.get('ip', 'No IP'),
+                'hostname': dev.get('hostname', 'Unknown'),
+                'vendor': dev.get('vendor', 'Unknown'),
+                'vlan': dev.get('vlan', ''),
+                'first_seen': dev.get('first_seen', '')
+            })
+
+        # === NTFY.SH formát ===
+        if 'ntfy' in webhook_url.lower():
+            message_text = f'{count} new device(s) detected:\n\n'
+            message_text += '\n'.join([
+                f"• {d['mac']} - {d['vendor']} ({d.get('ip', 'No IP')})"
+                for d in devices_list[:5]
+            ])
+            if count > 5:
+                message_text += f'\n\n... and {count - 5} more'
+
+            headers = {
+                'Title': f'OPNsense: {count} new device(s)',
+                'Tags': 'opnsense,network,security',
+                'Priority': '4' if count > 3 else '3'
+            }
+
+            response = requests.post(
+                webhook_url,
+                data=message_text,
+                headers=headers,
+                timeout=10
+            )
+
+            log(f"[WEBHOOK] Response: HTTP {response.status_code}")
+            if response.ok:
+                log(f"Webhook SUCCESS: HTTP {response.status_code}")
+                return True
+            else:
+                log(f"Webhook FAILED: HTTP {response.status_code}")
+                return False
+
+        # === DISCORD formát ===
+        elif 'discord' in webhook_url.lower():
+            embed_fields = []
+            for dev in devices_list[:10]:
+                embed_fields.append({
+                    'name': f"🖥️ {dev['mac']}",
+                    'value': f"**Vendor:** {dev['vendor']}\n**IP:** {dev.get('ip', 'No IP')}\n**VLAN:** {dev.get('vlan', 'N/A')}",
+                    'inline': True
+                })
+
+            payload = {
+                'username': 'OPNsense Device Monitor',
+                'embeds': [{
+                    'title': f'🔔 {count} New Device(s) Detected',
+                    'description': f'New devices appeared on the network',
+                    'color': 3447003,
+                    'fields': embed_fields,
+                    'footer': {
+                        'text': f'OPNsense • {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+                    }
+                }]
+            }
+
+            response = requests.post(
+                webhook_url,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+
+            log(f"[WEBHOOK] Response: HTTP {response.status_code}")
+            if response.ok:
+                log(f"Webhook SUCCESS: HTTP {response.status_code}")
+                return True
+            else:
+                log(f"Webhook FAILED: HTTP {response.status_code}")
+                return False
+
+        # === GENERIC webhook ===
+        else:
+            payload = {
+                'event': 'new_devices',
+                'count': count,
+                'timestamp': datetime.now().isoformat(),
+                'hostname': os.uname().nodename,
+                'devices': devices_list
+            }
+
+            response = requests.post(
+                webhook_url,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+
+            log(f"[WEBHOOK] Response: HTTP {response.status_code}")
+            if response.ok:
+                log(f"Webhook SUCCESS: HTTP {response.status_code}")
+                return True
+            else:
+                log(f"Webhook FAILED: HTTP {response.status_code}")
+                return False
+
+    except Exception as e:
+        log(f"Webhook ERROR: {e}")
+        return False
+
+    
 def is_locally_administered(mac_address):
     """
     Detekuje jestli je MAC adresa lokálně administrovaná (virtuální/náhodná)
@@ -633,13 +774,22 @@ def full_scan():
             # Přidej do new_devices pro email
             device['first_seen'] = now
             new_devices.append(device)
-            log(f"New device: {mac} - {device['vendor']}")
+            # log(f"New device: {mac} - {device['vendor']}")
 
     db.commit()
     
-    # 5. Email
-    if new_devices and config['enabled'] and config['email_to']:
-        send_email(new_devices, config)
+    log(f"[NOTIFY] {len(new_devices)} new devices detected!")
+    # 5. Notifikace (email a/nebo webhook)
+    if new_devices and config['enabled']:
+        # Email
+        if config.get('email_enabled') and config.get('email_to'):
+            send_email(new_devices, config)
+            log("Email notification sent")
+        
+        # Webhook
+        if config.get('webhook_enabled') and config.get('webhook_url'):
+            send_webhook(new_devices, config)
+            log("Webhook notification sent")
     
     db.close()
     log(f"Scan completed. Active: {len(active_ips)}, New: {len(new_devices)}")

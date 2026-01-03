@@ -39,13 +39,16 @@ class ConfigController extends ApiControllerBase
         
         // Načti data z POST
         $enabled = $this->request->getPost('enabled', 'string', '0');
+        $email_enabled = $this->request->getPost('email_enabled', 'string', '0');
         $email_to = $this->request->getPost('email_to', 'string', '');
         $email_from = $this->request->getPost('email_from', 'string', 'devicemonitor@opnsense.local');
+        $webhook_enabled = $this->request->getPost('webhook_enabled', 'string', '0');
+        $webhook_url = $this->request->getPost('webhook_url', 'string', '');
         $scan_interval = $this->request->getPost('scan_interval', 'int', 300);
         $show_domain = $this->request->getPost('show_domain', 'string', '0');
         
-        // Validace emailů (jen pokud je monitoring zapnutý)
-        if ($enabled == '1') {
+        // Validace emailů (jen pokud je email zapnutý)
+        if ($email_enabled == '1') {
             if (empty($email_to) || !filter_var($email_to, FILTER_VALIDATE_EMAIL)) {
                 return [
                     'result' => 'failed',
@@ -57,6 +60,23 @@ class ConfigController extends ApiControllerBase
                 return [
                     'result' => 'failed',
                     'message' => 'Neplatná emailová adresa odesílatele'
+                ];
+            }
+        }
+
+        // Validace webhook URL (jen pokud je webhook zapnutý)
+        if ($webhook_enabled == '1') {
+            if (empty($webhook_url)) {
+                return [
+                    'result' => 'failed',
+                    'message' => 'Webhook URL nesmí být prázdné'
+                ];
+            }
+            
+            if (!filter_var($webhook_url, FILTER_VALIDATE_URL)) {
+                return [
+                    'result' => 'failed',
+                    'message' => 'Neplatná webhook URL'
                 ];
             }
         }
@@ -74,8 +94,11 @@ class ConfigController extends ApiControllerBase
         
         // Uprav jen základní sekci
         $config['enabled'] = $enabled;
+        $config['email_enabled'] = $email_enabled;
         $config['email_to'] = $email_to;
         $config['email_from'] = $email_from;
+        $config['webhook_enabled'] = $webhook_enabled;
+        $config['webhook_url'] = $webhook_url;
         $config['scan_interval'] = (int)$scan_interval;
         $config['show_domain'] = $show_domain;
         
@@ -91,6 +114,154 @@ class ConfigController extends ApiControllerBase
             'result' => 'failed',
             'message' => 'Nepodařilo se uložit konfiguraci'
         ];
+    }
+
+    /**
+     * Test webhook
+     * POST /api/devicemonitor/config/testWebhook
+     */
+    public function testWebhookAction()
+    {
+        if (!$this->request->isPost()) {
+            return ['result' => 'failed', 'message' => 'Musí být POST request'];
+        }
+
+        $webhook_url = $this->request->getPost('webhook_url', 'string', '');
+        
+        if (empty($webhook_url)) {
+            return [
+                'result' => 'failed',
+                'message' => 'Webhook URL není vyplněna'
+            ];
+        }
+        
+        try {
+            // === NTFY.SH formát ===
+            if (stripos($webhook_url, 'ntfy') !== false) {
+                $test_message = 'Device Monitor webhook is working! ✅';
+                
+                $ch = curl_init($webhook_url);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $test_message);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Title: 🧪 OPNsense Test',
+                    'Tags: test,opnsense',
+                    'Priority: 3'
+                ]);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                
+                $response = curl_exec($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                curl_close($ch);
+                
+                if ($http_code >= 200 && $http_code < 300) {
+                    return [
+                        'result' => 'ok',
+                        'message' => "Test sent (HTTP $http_code)"
+                    ];
+                } else {
+                    return [
+                        'result' => 'failed',
+                        'message' => "HTTP $http_code" . ($error ? ": $error" : '')
+                    ];
+                }
+            }
+            
+            // === DISCORD formát ===
+            else if (stripos($webhook_url, 'discord') !== false) {
+                $test_payload = [
+                    'username' => 'OPNsense Device Monitor',
+                    'embeds' => [[
+                        'title' => '🧪 Test Notification',
+                        'description' => 'Device Monitor webhook is working! ✅',
+                        'color' => 3447003,
+                        'fields' => [[
+                            'name' => 'Hostname',
+                            'value' => gethostname(),
+                            'inline' => true
+                        ], [
+                            'name' => 'Timestamp',
+                            'value' => date('Y-m-d H:i:s'),
+                            'inline' => true
+                        ]],
+                        'footer' => [
+                            'text' => 'OPNsense Device Monitor'
+                        ]
+                    ]]
+                ];
+                
+                $ch = curl_init($webhook_url);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($test_payload));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                
+                $response = curl_exec($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                curl_close($ch);
+                
+                if ($http_code >= 200 && $http_code < 300) {
+                    return [
+                        'result' => 'ok',
+                        'message' => "Test sent (HTTP $http_code)"
+                    ];
+                } else {
+                    return [
+                        'result' => 'failed',
+                        'message' => "HTTP $http_code" . ($error ? ": $error" : '')
+                    ];
+                }
+            }
+            
+            // === GENERIC webhook ===
+            else {
+                $test_payload = [
+                    'event' => 'test',
+                    'title' => '🧪 OPNsense Device Monitor - Test',
+                    'message' => 'This is a test notification. If you see this, webhook works! ✅',
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'hostname' => gethostname(),
+                    'test' => true
+                ];
+                
+                $ch = curl_init($webhook_url);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($test_payload));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                
+                $response = curl_exec($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $error = curl_error($ch);
+                curl_close($ch);
+                
+                if ($http_code >= 200 && $http_code < 300) {
+                    return [
+                        'result' => 'ok',
+                        'message' => "Test sent (HTTP $http_code)"
+                    ];
+                } else {
+                    return [
+                        'result' => 'failed',
+                        'message' => "HTTP $http_code" . ($error ? ": $error" : '')
+                    ];
+                }
+            }
+            
+        } catch (\Exception $e) {
+            return [
+                'result' => 'failed',
+                'message' => $e->getMessage()
+            ];
+        }
     }
 
     /**

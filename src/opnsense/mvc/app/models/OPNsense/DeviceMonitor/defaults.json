@@ -11,8 +11,11 @@
   },
   "config": {
     "enabled": "0",
+    "email_enabled": "1",
     "email_to": "",
     "email_from": "devicemonitor@opnsense.local",
+    "webhook_enabled": "0",
+    "webhook_url": "",
     "scan_interval": "300",
     "show_domain": "0",
     "oui": {
