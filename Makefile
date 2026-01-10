@@ -50,6 +50,12 @@ install:
 	@./install.sh
 	@echo "$(GREEN)✓ Instalace dokončena$(NC)"
 
+	# Helper skripty pro configd
+	install -m 0755 src/opnsense/scripts/OPNsense/DeviceMonitor/notify_email.php \
+		$(DESTDIR)/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/
+	install -m 0755 src/opnsense/scripts/OPNsense/DeviceMonitor/notify_webhook.php \
+		$(DESTDIR)/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/
+
 uninstall:
 	@echo "$(YELLOW)Odinstalovávám Device Monitor...$(NC)"
 	@test -f uninstall.sh || { echo "$(RED)CHYBA: uninstall.sh nenalezen!$(NC)"; exit 1; }

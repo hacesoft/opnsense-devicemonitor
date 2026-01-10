@@ -41,11 +41,13 @@ DEFAULT_CONFIG = _defaults['config']
 oui_cache = {}
 
 def log(message):
-    """Logování do souboru /var/log/devicemonitor.log"""
-    if DEBUG_LOGGING:
-        with open("/var/log/devicemonitor.log", "a") as f:
-            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
-
+    """Standardní append logging (rychlé!)"""
+    if not DEBUG_LOGGING:
+        return
+    
+    timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    with open("/var/log/devicemonitor.log", "a") as f:
+        f.write(f"{timestamp} - {message}\n")
 
 def load_config():
     """Načte runtime konfiguraci"""
@@ -61,7 +63,9 @@ def load_config():
             'webhook_enabled': DEFAULT_CONFIG.get('webhook_enabled', '0') == '1',
             'webhook_url': DEFAULT_CONFIG.get('webhook_url', ''),
             'scan_interval': int(DEFAULT_CONFIG.get('scan_interval', 300)),
-            'show_domain': DEFAULT_CONFIG.get('show_domain', '0') == '1'
+            'show_domain': DEFAULT_CONFIG.get('show_domain', '0') == '1',
+            'apiEmailUrl': PATHS.get('apiEmailUrl', 'apiEmailUrl'),
+            'apiWebhookUrl': PATHS.get('apiWebhookUrl', 'apiWebhookUrl')
         }
     
     try:
@@ -76,7 +80,9 @@ def load_config():
                 'webhook_enabled': config.get('webhook_enabled', '0') == '1',
                 'webhook_url': config.get('webhook_url', ''),
                 'scan_interval': int(config.get('scan_interval', 300)),
-                'show_domain': config.get('show_domain', '0') == '1'
+                'show_domain': config.get('show_domain', '0') == '1',
+                'apiEmailUrl': PATHS.get('apiEmailUrl'),
+                'apiWebhookUrl': PATHS.get('apiWebhookUrl')
             }
     except Exception as e:
         if DEBUG_LOGGING:
@@ -89,7 +95,9 @@ def load_config():
             'webhook_enabled': False,
             'webhook_url': '',
             'scan_interval': 300,
-            'show_domain': False
+            'show_domain': False,
+            'apiEmailUrl': PATHS.get('apiEmailUrl'),
+            'apiWebhookUrl': PATHS.get('apiWebhookUrl')
         }
 
 def load_oui_database():
@@ -117,137 +125,6 @@ def load_oui_database():
         log(f"OUI database loaded: {len(oui_cache)} vendors")
     except Exception as e:
         log(f"Error loading OUI database: {e}")
-
-def send_webhook(new_devices, config):
-    """
-    Webhook notifikace - posílá JSON data na URL
-    Podporuje:
-    - ntfy.sh (notifikace na mobil)
-    - Discord
-    - Generic webhooks (jakékoli URL)
-    """
-    import requests
-
-    webhook_url = config.get('webhook_url')
-    webhook_enabled = config.get('webhook_enabled', False)
-
-    if not webhook_enabled or not webhook_url or not new_devices:
-        log(f"[WEBHOOK] SKIPPED! enabled={webhook_enabled}, url={'yes' if webhook_url else 'NO'}, devices={len(new_devices) if new_devices else 0}")
-        return False
-
-    log(f"[WEBHOOK] Preparing request to {webhook_url}...")
-
-    try:
-        count = len(new_devices)
-        devices_list = []
-        for dev in new_devices:
-            devices_list.append({
-                'mac': dev['mac'],
-                'ip': dev.get('ip', 'No IP'),
-                'hostname': dev.get('hostname', 'Unknown'),
-                'vendor': dev.get('vendor', 'Unknown'),
-                'vlan': dev.get('vlan', ''),
-                'first_seen': dev.get('first_seen', '')
-            })
-
-        # === NTFY.SH formát ===
-        if 'ntfy' in webhook_url.lower():
-            message_text = f'{count} new device(s) detected:\n\n'
-            message_text += '\n'.join([
-                f"• {d['mac']} - {d['vendor']} ({d.get('ip', 'No IP')})"
-                for d in devices_list[:5]
-            ])
-            if count > 5:
-                message_text += f'\n\n... and {count - 5} more'
-
-            headers = {
-                'Title': f'OPNsense: {count} new device(s)',
-                'Tags': 'opnsense,network,security',
-                'Priority': '4' if count > 3 else '3'
-            }
-
-            response = requests.post(
-                webhook_url,
-                data=message_text,
-                headers=headers,
-                timeout=10
-            )
-
-            log(f"[WEBHOOK] Response: HTTP {response.status_code}")
-            if response.ok:
-                log(f"Webhook SUCCESS: HTTP {response.status_code}")
-                return True
-            else:
-                log(f"Webhook FAILED: HTTP {response.status_code}")
-                return False
-
-        # === DISCORD formát ===
-        elif 'discord' in webhook_url.lower():
-            embed_fields = []
-            for dev in devices_list[:10]:
-                embed_fields.append({
-                    'name': f"🖥️ {dev['mac']}",
-                    'value': f"**Vendor:** {dev['vendor']}\n**IP:** {dev.get('ip', 'No IP')}\n**VLAN:** {dev.get('vlan', 'N/A')}",
-                    'inline': True
-                })
-
-            payload = {
-                'username': 'OPNsense Device Monitor',
-                'embeds': [{
-                    'title': f'🔔 {count} New Device(s) Detected',
-                    'description': f'New devices appeared on the network',
-                    'color': 3447003,
-                    'fields': embed_fields,
-                    'footer': {
-                        'text': f'OPNsense • {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-                    }
-                }]
-            }
-
-            response = requests.post(
-                webhook_url,
-                json=payload,
-                headers={'Content-Type': 'application/json'},
-                timeout=10
-            )
-
-            log(f"[WEBHOOK] Response: HTTP {response.status_code}")
-            if response.ok:
-                log(f"Webhook SUCCESS: HTTP {response.status_code}")
-                return True
-            else:
-                log(f"Webhook FAILED: HTTP {response.status_code}")
-                return False
-
-        # === GENERIC webhook ===
-        else:
-            payload = {
-                'event': 'new_devices',
-                'count': count,
-                'timestamp': datetime.now().isoformat(),
-                'hostname': os.uname().nodename,
-                'devices': devices_list
-            }
-
-            response = requests.post(
-                webhook_url,
-                json=payload,
-                headers={'Content-Type': 'application/json'},
-                timeout=10
-            )
-
-            log(f"[WEBHOOK] Response: HTTP {response.status_code}")
-            if response.ok:
-                log(f"Webhook SUCCESS: HTTP {response.status_code}")
-                return True
-            else:
-                log(f"Webhook FAILED: HTTP {response.status_code}")
-                return False
-
-    except Exception as e:
-        log(f"Webhook ERROR: {e}")
-        return False
-
     
 def is_locally_administered(mac_address):
     """
@@ -306,7 +183,8 @@ def init_db():
         vlan TEXT,
         last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
         notified INTEGER DEFAULT 0,
-        is_active INTEGER DEFAULT 0
+        is_active INTEGER DEFAULT 0,
+        notification_pending INTEGER DEFAULT 0
     )''')
     
     # Přidej sloupce pokud neexistují
@@ -322,6 +200,16 @@ def init_db():
     
     try:
         c.execute('ALTER TABLE devices ADD COLUMN is_active INTEGER DEFAULT 0')
+    except:
+        pass
+    
+    try:
+        c.execute('ALTER TABLE devices ADD COLUMN notification_pending INTEGER DEFAULT 0')
+    except:
+        pass
+    
+    try:
+        c.execute('ALTER TABLE devices ADD COLUMN first_seen DATETIME DEFAULT CURRENT_TIMESTAMP')
     except:
         pass
     
@@ -356,7 +244,6 @@ def get_active_interfaces():
     
     log(f"Monitoring interfaces: {', '.join(interfaces)}")
     return interfaces
-
 
 def get_vlan_from_line(line):
     """Detekce VLAN"""
@@ -416,6 +303,81 @@ def get_arp_table():
     
     return devices
 
+def send_email_via_php_api(new_devices):
+    """Označ zařízení v DB pro odeslání emailu"""
+    if not new_devices:
+        return
+    
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        
+        # Označ zařízení pro notifikaci
+        for device in new_devices:
+            cursor.execute("""
+                UPDATE devices 
+                SET notification_pending = 1 
+                WHERE mac = ?
+            """, (device['mac'],))
+        
+        conn.commit()
+        # log(f"[EMAIL] Marked {len(new_devices)} devices for notification")
+        
+        # Zavolej PHP BEZ parametrů
+        result = subprocess.run(
+            ['/usr/local/sbin/configctl', 'devicemonitor', 'sendEmailNotification'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        # log(f"[EMAIL] configctl returned: {result.returncode}")
+        # if result.stdout:
+        #     log(f"[EMAIL] stdout: {result.stdout[:200]}")
+        if result.stderr:
+            log(f"[EMAIL] stderr: {result.stderr[:200]}")
+            
+    except Exception as e:
+        log(f"[EMAIL] Error: {e}")
+
+
+def send_webhook_via_php_api(new_devices):
+    """Označ zařízení v DB pro odeslání webhooku"""
+    if not new_devices:
+        return
+    
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        
+        # Označ zařízení pro notifikaci
+        for device in new_devices:
+            cursor.execute("""
+                UPDATE devices 
+                SET notification_pending = 1 
+                WHERE mac = ?
+            """, (device['mac'],))
+        
+        conn.commit()
+        # log(f"[WEBHOOK] Marked {len(new_devices)} devices for notification")
+        
+        # Zavolej PHP BEZ parametrů
+        result = subprocess.run(
+            ['/usr/local/sbin/configctl', 'devicemonitor', 'sendWebhookNotification'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        # log(f"[WEBHOOK] configctl returned: {result.returncode}")
+        # if result.stdout:
+        #     log(f"[WEBHOOK] stdout: {result.stdout[:200]}")
+        if result.stderr:
+            log(f"[WEBHOOK] stderr: {result.stderr[:200]}")
+            
+    except Exception as e:
+        log(f"[WEBHOOK] Error: {e}")
+    
 def get_dhcp_and_l2_devices():
     """
     Kombinovaný scan - najde zařízení bez IP:
@@ -499,99 +461,6 @@ def get_dhcp_and_l2_devices():
     
     return devices
 
-def send_email(new_devices, config):
-    """Email - HTML s inline CSS"""
-    email_to = config.get('email_to')
-    email_from = config.get('email_from', 'devicemonitor@opnsense.local')
-    
-    if not email_to or not new_devices:
-        return False
-    
-    try:
-        count = len(new_devices)
-        subject = f'OPNsense: {count} {"nove zarizeni" if count == 1 else "novych zarizeni"} v siti'
-        
-        # HTML s INLINE CSS
-        html = '<!DOCTYPE html>\n'
-        html += '<html>\n'
-        html += '<body style="font-family: Arial, sans-serif; padding: 20px;">\n'
-        html += '<h2 style="color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;">Nova zarizeni v siti</h2>\n'
-        
-        # Souhrn
-        html += '<div style="background-color: #e7f3fe; padding: 15px; margin: 20px 0; border-left: 6px solid #2196F3;">\n'
-        html += f'<p style="margin: 5px 0;"><strong>Pocet novych zarizeni:</strong> {count}</p>\n'
-        html += f'<p style="margin: 5px 0;"><strong>Cas detekce:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>\n'
-        html += f'<p style="margin: 5px 0;"><strong>Server:</strong> {os.uname().nodename}</p>\n'
-        html += '</div>\n'
-        
-        # Tabulka
-        html += '<table style="border-collapse: collapse; width: 100%; margin-top: 20px;">\n'
-        html += '<tr style="background-color: #4CAF50;">\n'
-        html += '<th style="padding: 12px; color: white; text-align: left; border: 1px solid #ddd;">MAC adresa</th>\n'
-        html += '<th style="padding: 12px; color: white; text-align: left; border: 1px solid #ddd;">IP adresa</th>\n'
-        html += '<th style="padding: 12px; color: white; text-align: left; border: 1px solid #ddd;">Hostname</th>\n'
-        html += '<th style="padding: 12px; color: white; text-align: left; border: 1px solid #ddd;">Vyrobce</th>\n'
-        html += '<th style="padding: 12px; color: white; text-align: left; border: 1px solid #ddd;">VLAN</th>\n'
-        html += '<th style="padding: 12px; color: white; text-align: left; border: 1px solid #ddd;">Prvni detekce</th>\n'
-        html += '</tr>\n'
-        
-        for i, dev in enumerate(new_devices):
-            bg_color = '#f2f2f2' if i % 2 == 0 else '#ffffff'
-            
-            # Speciální označení pro zařízení bez IP
-            if not dev.get('ip'):
-                bg_color = '#fff3cd'  # Žlutá - varování
-            
-            html += f'<tr style="background-color: {bg_color};">\n'
-            html += f'<td style="padding: 10px; border: 1px solid #ddd;"><strong>{dev["mac"]}</strong></td>\n'
-            
-            # IP adresa - pokud není, ukaž varování
-            ip_display = dev.get('ip') or '<strong style="color: #856404;">⚠️ BEZ IP</strong>'
-            html += f'<td style="padding: 10px; border: 1px solid #ddd;">{ip_display}</td>\n'
-            
-            hostname = dev.get("hostname") or '<em style="color: #999;">neznamy</em>'
-            html += f'<td style="padding: 10px; border: 1px solid #ddd;">{hostname}</td>\n'
-            
-            vendor = dev.get("vendor", "Unknown")
-            html += f'<td style="padding: 10px; border: 1px solid #ddd;"><strong style="color: #FF9800;">{vendor}</strong></td>\n'
-            html += f'<td style="padding: 10px; border: 1px solid #ddd;"><strong style="color: #2196F3;">{dev["vlan"]}</strong></td>\n'
-            html += f'<td style="padding: 10px; border: 1px solid #ddd;">{dev["first_seen"]}</td>\n'
-            html += '</tr>\n'
-        
-        html += '</table>\n'
-        html += '<hr style="margin-top: 30px; border: none; border-top: 1px solid #ddd;">\n'
-        html += '<p style="color: #666; font-size: 12px; margin-top: 20px;">OPNsense Device Monitor</p>\n'
-        html += '</body>\n'
-        html += '</html>\n'
-        
-        # Sestavení emailu
-        message = f"From: {email_from}\n"
-        message += f"To: {email_to}\n"
-        message += f"Subject: {subject}\n"
-        message += "MIME-Version: 1.0\n"
-        message += "Content-Type: text/html; charset=UTF-8\n\n"
-        message += html
-        
-        # Odešli
-        result = subprocess.run(
-            ['/usr/local/sbin/sendmail', '-t'],
-            input=message,
-            text=True,
-            capture_output=True,
-            timeout=10
-        )
-        
-        if result.returncode == 0:
-            log(f"Email sent: {count} devices to {email_to}")
-            return True
-        else:
-            log(f"Email failed: {result.stderr}")
-            return False
-            
-    except Exception as e:
-        log(f"Email error: {e}")
-        return False
-
 def check_device_activity_pfctl():
     """
     Načte aktivní IP z pfctl -ss
@@ -674,7 +543,7 @@ def update_status_only():
     
     # Získej aktivní IPs z pfctl
     active_ips = check_device_activity_pfctl()
-    log(f"Active IPs detected: {len(active_ips)}")
+    log(f"Update_Active IPs detected: {len(active_ips)}")
     
     # Aktualizuj databázi
     conn = sqlite3.connect(DB_FILE)
@@ -720,7 +589,7 @@ def full_scan():
     # 1. Načti aktivní IP z pfctl (rychlé!)
     log("Checking device activity via pfctl...")
     active_ips = check_device_activity_pfctl()
-    log(f"Active IPs detected: {len(active_ips)}")
+    log(f"FullScan_Active IPs detected: {len(active_ips)}")
     
     # 2. Získej všechna zařízení z ARP
     devices_with_ip = get_arp_table()
@@ -729,14 +598,14 @@ def full_scan():
     # 3. Zařízení BEZ IP
     devices_without_ip = get_dhcp_and_l2_devices()
     log(f"L2 scan: {len(devices_without_ip)} devices without IP")
-    
+
     # 4. Zpracuj - aktualizuj last_seen JEN pro AKTIVNÍ
     new_devices = []
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     cursor = db.cursor()
 
-    # NEJDŘÍV nastav VŠECHNY na neaktivní
-    cursor.execute('UPDATE devices SET is_active = 0')
+    # NEJDŘÍV resetuj příznaky (online + notifikace)
+    cursor.execute('UPDATE devices SET is_active = 0, notification_pending = 0')
 
     for device in (devices_with_ip + devices_without_ip):
         mac = device['mac']
@@ -767,10 +636,9 @@ def full_scan():
         else:
             # INSERT nového zařízení
             cursor.execute('''
-                INSERT INTO devices (mac, ip, hostname, vendor, vlan, last_seen, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (mac, device['ip'], device['hostname'], device['vendor'], device['vlan'], now, is_active))
-            
+                INSERT INTO devices (mac, ip, hostname, vendor, vlan, first_seen, last_seen, is_active, notification_pending)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+            ''', (mac, device['ip'], device['hostname'], device['vendor'], device['vlan'], now, now, is_active))
             # Přidej do new_devices pro email
             device['first_seen'] = now
             new_devices.append(device)
@@ -779,21 +647,21 @@ def full_scan():
     db.commit()
     
     log(f"[NOTIFY] {len(new_devices)} new devices detected!")
-    # 5. Notifikace (email a/nebo webhook)
+    # 5. Notifikace - volá PHP API (řeší emoji)
     if new_devices and config['enabled']:
-        # Email
-        if config.get('email_enabled') and config.get('email_to'):
-            send_email(new_devices, config)
-            log("Email notification sent")
+        # log(f"[NOTIFY] {len(new_devices)} new devices detected")
         
-        # Webhook
+        # Email (pokud enabled)
+        if config.get('email_enabled') and config.get('email_to'):
+            send_email_via_php_api(new_devices)
+        
+        # Webhook (pokud enabled)
         if config.get('webhook_enabled') and config.get('webhook_url'):
-            send_webhook(new_devices, config)
-            log("Webhook notification sent")
+            send_webhook_via_php_api(new_devices)
     
     db.close()
     log(f"Scan completed. Active: {len(active_ips)}, New: {len(new_devices)}")
-    print(f"Scan complete: {len(active_ips)} active, {len(new_devices)} new")
+    # print(f"Scan complete: {len(active_ips)} active, {len(new_devices)} new")
     
     return 0
 

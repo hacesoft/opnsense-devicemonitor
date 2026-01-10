@@ -7,7 +7,11 @@
     "pidFile": "/var/run/devicemonitor.pid",
     "scanScript": "/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/scan_network.py",
     "daemonScript": "/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py",
-    "ouiDownloadScript": "/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/download_oui.py"
+    "ouiDownloadScript": "/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/download_oui.py",
+    "configController": "/usr/local/opnsense/mvc/app/controllers/OPNsense/DeviceMonitor",
+    "apiBaseUrl": "https://localhost/api/devicemonitor",
+    "apiEmailUrl": "https://localhost/api/devicemonitor/config/sendEmail",
+    "apiWebhookUrl": "https://localhost/api/devicemonitor/config/sendWebhook"
   },
   "config": {
     "enabled": "0",

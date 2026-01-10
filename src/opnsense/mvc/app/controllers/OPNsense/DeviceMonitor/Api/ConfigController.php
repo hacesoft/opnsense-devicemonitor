@@ -5,6 +5,10 @@ namespace OPNsense\DeviceMonitor\Api;
 use OPNsense\Base\ApiControllerBase;
 use OPNsense\DeviceMonitor\DeviceMonitor;
 
+
+// Include shared handler
+require_once('/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/NotificationHandler.php');
+
 /**
  * ConfigController
  * 
@@ -115,247 +119,52 @@ class ConfigController extends ApiControllerBase
             'message' => 'Nepodařilo se uložit konfiguraci'
         ];
     }
-
+    
     /**
-     * Test webhook
-     * POST /api/devicemonitor/config/testWebhook
-     */
-    public function testWebhookAction()
-    {
-        if (!$this->request->isPost()) {
-            return ['result' => 'failed', 'message' => 'Musí být POST request'];
-        }
-
-        $webhook_url = $this->request->getPost('webhook_url', 'string', '');
-        
-        if (empty($webhook_url)) {
-            return [
-                'result' => 'failed',
-                'message' => 'Webhook URL není vyplněna'
-            ];
-        }
-        
-        try {
-            // === NTFY.SH formát ===
-            if (stripos($webhook_url, 'ntfy') !== false) {
-                $test_message = 'Device Monitor webhook is working! ✅';
-                
-                $ch = curl_init($webhook_url);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $test_message);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                    'Title: 🧪 OPNsense Test',
-                    'Tags: test,opnsense',
-                    'Priority: 3'
-                ]);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                
-                $response = curl_exec($ch);
-                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $error = curl_error($ch);
-                curl_close($ch);
-                
-                if ($http_code >= 200 && $http_code < 300) {
-                    return [
-                        'result' => 'ok',
-                        'message' => "Test sent (HTTP $http_code)"
-                    ];
-                } else {
-                    return [
-                        'result' => 'failed',
-                        'message' => "HTTP $http_code" . ($error ? ": $error" : '')
-                    ];
-                }
-            }
-            
-            // === DISCORD formát ===
-            else if (stripos($webhook_url, 'discord') !== false) {
-                $test_payload = [
-                    'username' => 'OPNsense Device Monitor',
-                    'embeds' => [[
-                        'title' => '🧪 Test Notification',
-                        'description' => 'Device Monitor webhook is working! ✅',
-                        'color' => 3447003,
-                        'fields' => [[
-                            'name' => 'Hostname',
-                            'value' => gethostname(),
-                            'inline' => true
-                        ], [
-                            'name' => 'Timestamp',
-                            'value' => date('Y-m-d H:i:s'),
-                            'inline' => true
-                        ]],
-                        'footer' => [
-                            'text' => 'OPNsense Device Monitor'
-                        ]
-                    ]]
-                ];
-                
-                $ch = curl_init($webhook_url);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($test_payload));
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                
-                $response = curl_exec($ch);
-                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $error = curl_error($ch);
-                curl_close($ch);
-                
-                if ($http_code >= 200 && $http_code < 300) {
-                    return [
-                        'result' => 'ok',
-                        'message' => "Test sent (HTTP $http_code)"
-                    ];
-                } else {
-                    return [
-                        'result' => 'failed',
-                        'message' => "HTTP $http_code" . ($error ? ": $error" : '')
-                    ];
-                }
-            }
-            
-            // === GENERIC webhook ===
-            else {
-                $test_payload = [
-                    'event' => 'test',
-                    'title' => '🧪 OPNsense Device Monitor - Test',
-                    'message' => 'This is a test notification. If you see this, webhook works! ✅',
-                    'timestamp' => date('Y-m-d H:i:s'),
-                    'hostname' => gethostname(),
-                    'test' => true
-                ];
-                
-                $ch = curl_init($webhook_url);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($test_payload));
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                
-                $response = curl_exec($ch);
-                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $error = curl_error($ch);
-                curl_close($ch);
-                
-                if ($http_code >= 200 && $http_code < 300) {
-                    return [
-                        'result' => 'ok',
-                        'message' => "Test sent (HTTP $http_code)"
-                    ];
-                } else {
-                    return [
-                        'result' => 'failed',
-                        'message' => "HTTP $http_code" . ($error ? ": $error" : '')
-                    ];
-                }
-            }
-            
-        } catch (\Exception $e) {
-            return [
-                'result' => 'failed',
-                'message' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Test odeslání emailu
+     * Test email (volá se z GUI)
      * POST /api/devicemonitor/config/testemail
      */
     public function testemailAction()
     {
-        if (!$this->request->isPost()) {
-            return ['result' => 'failed', 'message' => 'Musí být POST request'];
-        }
+        $handler = new \NotificationHandler();
+        //              ↑
+        //    Tento backslash říká: "Hledej v GLOBÁLNÍM namespace!"
 
-        $model = new DeviceMonitor();
-        $config = $model->getConfig();
-        
-        if (empty($config['email_to'])) {
-            return [
-                'result' => 'failed',
-                'message' => 'Nejprve ulož emailovou adresu příjemce'
-            ];
+        $handler->fLog("Preparing to send test email", 'EMAIL');
+
+        $result = $handler->sendEmail(true);
+
+        // Loguj výsledek
+        $logMessage = "Test email result: " . ($result['result'] === 'sent' || $result['result'] === 'ok' ? "SUCCESS" : "FAILED");
+        if ($result['result'] !== 'sent' && $result['result'] !== 'ok') {
+            $logMessage .= " | Reason: " . ($result['message'] ?? 'Unknown error');
         }
-        
-        $email_to = $config['email_to'];
-        $email_from = $config['email_from'];
-        
-        try {
-            $subject = 'Test - OPNsense Device Monitor';
-            $hostname = gethostname();
-            $timestamp = date('Y-m-d H:i:s');
-            
-            // Vytvoř HTML email
-            $html = "<html><body>\n";
-            $html .= "<h2>Device Monitor - Test Email</h2>\n";
-            $html .= "<p>Pokud vidíš tuto zprávu, <strong>email funguje správně!</strong></p>\n";
-            $html .= "<hr>\n";
-            $html .= "<table border='0' cellpadding='5'>\n";
-            $html .= "<tr><td><strong>Server:</strong></td><td>$hostname</td></tr>\n";
-            $html .= "<tr><td><strong>Čas:</strong></td><td>$timestamp</td></tr>\n";
-            $html .= "<tr><td><strong>Příjemce:</strong></td><td>$email_to</td></tr>\n";
-            $html .= "<tr><td><strong>Odesílatel:</strong></td><td>$email_from</td></tr>\n";
-            $html .= "</table>\n";
-            $html .= "</body></html>\n";
-            
-            // Sestavení emailu pro sendmail
-            $message = "From: $email_from\n";
-            $message .= "To: $email_to\n";
-            $message .= "Subject: $subject\n";
-            $message .= "Content-Type: text/html; charset=UTF-8\n\n";
-            $message .= $html;
-            
-            // Odešli přes sendmail
-            $descriptorspec = [
-                0 => ["pipe", "r"],
-                1 => ["pipe", "w"],
-                2 => ["pipe", "w"]
-            ];
-            
-            $process = proc_open('/usr/local/sbin/sendmail -t', $descriptorspec, $pipes);
-            
-            if (is_resource($process)) {
-                fwrite($pipes[0], $message);
-                fclose($pipes[0]);
-                
-                $stdout = stream_get_contents($pipes[1]);
-                fclose($pipes[1]);
-                
-                $stderr = stream_get_contents($pipes[2]);
-                fclose($pipes[2]);
-                
-                $return_value = proc_close($process);
-                
-                if ($return_value === 0) {
-                    return [
-                        'result' => 'sent',
-                        'message' => "Email odeslán na: $email_to"
-                    ];
-                } else {
-                    return [
-                        'result' => 'failed',
-                        'message' => "Sendmail selhal (kod: $return_value)"
-                    ];
-                }
-            } else {
-                return [
-                    'result' => 'failed',
-                    'message' => 'Nepodařilo se spustit sendmail'
-                ];
-            }
-            
-        } catch (\Exception $e) {
-            return [
-                'result' => 'failed',
-                'message' => 'Chyba: ' . $e->getMessage()
-            ];
-        }
+        $handler->fLog($logMessage, "EMAIL-ConnfigController");
+
+        return $result;
     }
+
+    /**
+     * Test webhook (volá se z GUI)
+     * POST /api/devicemonitor/config/testWebhook
+     */
+    public function testWebhookAction()
+    {
+        $handler = new \NotificationHandler();
+        //              ↑
+        //    Tento backslash říká: "Hledej v GLOBÁLNÍM namespace!"
+
+        $handler->fLog("Preparing to send test webhook", 'WEBHOOK');
+
+         $result = $handler->sendWebhook(true, $this->request->getPost('webhook_url', 'string', ''));
+
+        // Loguj výsledek
+        $logMessage = "Test webhook result: " . ($result['result'] === 'sent' || $result['result'] === 'ok' ? "SUCCESS" : "FAILED");
+        if ($result['result'] !== 'sent' && $result['result'] !== 'ok') {
+            $logMessage .= " | Reason: " . ($result['message'] ?? 'Unknown error');
+        }
+        $handler->fLog($logMessage, "WEBHOOK-ConnfigController");
+
+        return $result;
+    }    
 }

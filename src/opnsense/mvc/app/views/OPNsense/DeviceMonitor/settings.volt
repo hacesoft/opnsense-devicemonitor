@@ -17,7 +17,7 @@
         </ul>
         
         <!-- Tab Content -->
-        <div class="tab-content" style="margin-top: 20px;">
+        <div class="tab-content">
             
             <!-- TAB 1: Obecné nastavení -->
             <div role="tabpanel" class="tab-pane active" id="general">
@@ -37,7 +37,7 @@
                             </tr>
                             <!-- EMAIL NOTIFICATIONS -->
                             <tr>
-                                <td colspan="2" style="background-color: #f5f5f5; padding: 10px; color: #333;">
+                                <td colspan="2" style="background-color: #d9edf7; padding: 10px; color: #333;">
                                     <strong>📧 Email Notifications</strong>
                                 </td>
                             </tr>
@@ -58,13 +58,22 @@
                                         <label>{{ lang._('Email Sender') }}:</label>
                                         <input type="email" id="email_from" class="form-control" placeholder="devicemonitor@opnsense.local" value="devicemonitor@opnsense.local" />
                                         <small class="text-muted">{{ lang._('From address') }}</small>
+
+                                        <div class="alert alert-warning">
+                                            <h4><i class="fa fa-exclamation-triangle"></i> {{ lang._('Important - SMTP Configuration') }}</h4>
+                                            <p>{{ lang._('Plugin uses <strong>sendmail (Postfix)</strong> to send emails') }}</p>
+                                            <p>{{ lang._('Must be configured in: <strong>System > Settings > Notifications > SMTP</strong>') }}</p>
+                                        </div>
+                                        <button type="button" id="btn-test-email" class="btn btn-primary btn-sm">
+                                            🧪 {{ lang._('Test Email') }}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
 
                             <!-- WEBHOOK NOTIFICATIONS -->
                             <tr>
-                                <td colspan="2" style="background-color: #f5f5f5; padding: 10px; color: #333;">
+                                <td colspan="2" style="background-color: #d9edf7; padding: 10px; color: #333;">
                                     <strong>🔔 Webhook Notifications</strong>
                                 </td>
                             </tr>
@@ -106,44 +115,47 @@
                                 </td>
                             </tr>
 
-                            <!-- ODDĚLENÍ -->
+                            <!-- OTHER SETTINGS -->
                             <tr>
-                                <td colspan="2"><hr></td>
-                            </tr>
-                            <tr>
-                                <td><strong>{{ lang._('Scan Interval') }} (sekundy)</strong></td>
-                                <td>
-                                    <input type="number" id="scan_interval" class="form-control" value="300" min="60" max="3600" />
-                                    <small class="text-muted">{{ lang._('Seconds between scans (60-3600)') }}</small>
+                                <td colspan="2" style="background-color: #d9edf7; padding: 10px; color: #31708f; border: 1px solid #bce8f1;">
+                                    <strong><i class="fa fa-cog"></i> Other Settings</strong>
                                 </td>
                             </tr>
                             <tr>
-                                <td><strong>{{ lang._('Hostname Display') }}</strong></td>
-                                <td>
-                                    <input type="checkbox" id="show_domain" />
-                                    <small class="text-muted">{{ lang._('Show domain in hostname (e.g. device.localdomain)') }}</small>
+                                <td colspan="2">
+                                    <div>
+                                        <!-- Scan Interval -->
+                                        <div style="margin-bottom: 20px;">
+                                            <label><strong>{{ lang._('Scan Interval') }} ({{ lang._('seconds') }})</strong></label>
+                                            <br>
+                                            <input type="number" id="scan_interval" class="form-control" value="300" min="60" max="3600" style="max-width: 200px; margin-top: 5px;" />
+                                            <small class="text-muted">{{ lang._('Seconds between scans (60-3600)') }}</small>
+                                        </div>
+                                        
+                                        <!-- Hostname Display -->
+                                        <div>
+                                            <label>
+                                                <input type="checkbox" id="show_domain" />
+                                                <strong>{{ lang._('Show domain in hostname') }}</strong>
+                                            </label>
+                                            <br>
+                                            <small class="text-muted">{{ lang._('e.g. device.localdomain instead of just device') }}</small>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
-                    
-                    <div class="form-group">
-                        <button type="button" id="btn-save" class="btn btn-primary">
-                            <i class="fa fa-save"></i> {{ lang._('Save') }}
+
+                    <div style="padding: 15px;">
+                        <button type="button" id="btn-save" class="btn btn-primary btn-lg" style="min-width: 200px;">
+                            <i class="fa fa-save"></i> {{ lang._('Save Configuration') }}
                         </button>
-                        <button type="button" id="btn-test-email" class="btn btn-info" style="margin-left: 10px;">
-                            <i class="fa fa-envelope"></i> {{ lang._('Test Email') }}
-                        </button>
+                        <p style="margin-top: 10px; color: #666; font-size: 12px;">
+                            <i class="fa fa-info-circle"></i> {{ lang._('Saves all settings on this page') }}
+                        </p>
                     </div>
                 </form>
-                
-                <hr>
-                
-                <div class="alert alert-warning">
-                    <h4><i class="fa fa-exclamation-triangle"></i> {{ lang._('Important - SMTP Configuration') }}</h4>
-                    <p>{{ lang._('Plugin uses <strong>sendmail (Postfix)</strong> to send emails') }}</p>
-                    <p>{{ lang._('Must be configured in: <strong>System > Settings > Notifications > SMTP</strong>') }}</p>
-                </div>
             </div>
             
             <!-- TAB 2: OUI Database -->
@@ -453,7 +465,7 @@ $().ready(function() {
         $('#webhook_test_result').html('<span style="color: blue;">⏳ Sending...</span>');
         
         $.ajax({
-            url: '/api/devicemonitor/config/testWebhook',
+            url: '/api/devicemonitor/config/testWebhook',  // ← TU TO VOLÁŠ!
             type: 'POST',
             data: { webhook_url: url },
             success: function(data) {
@@ -462,9 +474,6 @@ $().ready(function() {
                 } else {
                     $('#webhook_test_result').html('<span style="color: red;">❌ ' + (data.message || 'Failed') + '</span>');
                 }
-            },
-            error: function() {
-                $('#webhook_test_result').html('<span style="color: red;">❌ Request failed</span>');
             }
         });
     });
@@ -482,7 +491,7 @@ $().ready(function() {
         $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Odesílám...');
         
         $.ajax({
-            url: '/api/devicemonitor/config/testemail',
+            url: '/api/devicemonitor/config/testemail',  // ← TU TO VOLÁŠ!
             type: 'POST',
             success: function(response) {
                 $btn.prop('disabled', false).html(originalHtml);
@@ -492,15 +501,10 @@ $().ready(function() {
                 } else {
                     showToast(response.message || translations.test_failed, 'error');
                 }
-            },
-            error: function() {
-                $btn.prop('disabled', false).html(originalHtml);
-                //showToast('Chyba při odesílání emailu', 'error');
-                showToast(translations.stansmition_failed, 'error');
             }
         });
     });
-    
+        
     // ========================================
     // TAB 2: OUI Database
     // ========================================

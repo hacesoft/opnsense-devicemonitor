@@ -207,6 +207,12 @@ cp src/opnsense/scripts/OPNsense/DeviceMonitor/*.py \
 
 chmod +x /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/*.py
 
+
+cp src/opnsense/scripts/OPNsense/DeviceMonitor/*.php \
+   /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/
+
+chmod +x /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/*.php
+
 # Configd actions
 echo "  → Configd actions..."
 cp src/opnsense/service/conf/actions.d/actions_devicemonitor.conf \

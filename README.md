@@ -1,52 +1,79 @@
 # OPNsense Device Monitor
 
-**[🇨🇿 Česká verze](README_CZ.md)** | **[👨‍💻 Author's Projects](https://github.com/hacesoft?tab=repositories)**
+**[🇨🇿 Czech version](README_CZ.md)** | **[👨‍💻 More projects by the author](https://github.com/hacesoft?tab=repositories)**
 
 ---
 
-Automatic network device monitoring plugin for OPNsense firewall. Detects new devices via ARP scanning and sends email notifications.
-
-![License](https://img.shields.io/badge/license-BSD--2--Clause-green) ![OPNsense](https://img.shields.io/badge/OPNsense-24.x-orange)
+Plugin for automatic network device monitoring in OPNsense firewall. Detects new devices using ARP scanning and sends email or webhook notifications about new devices on the network.
 
 ---
 
 ## 📋 Table of Contents
 
-- [What It Does](#what-it-does)
+- [What the plugin does](#what-the-plugin-does)
 - [Features](#features)
 - [Installation](#installation)
-  - [Method 1: WinSCP + Manual Install](#method-1-winscp--manual-install-recommended)
-  - [Method 2: Direct SSH Install](#method-2-direct-ssh-install)
+  - [Method 1: WinSCP + Manual installation](#method-1-winscp--manual-installation-recommended)
+  - [Method 2: Direct SSH installation](#method-2-direct-ssh-installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
-- [Plugin Structure](#plugin-structure)
+- [Plugin structure](#plugin-structure)
 - [Troubleshooting](#troubleshooting)
 - [Versioning](#versioning)
 - [Uninstallation](#uninstallation)
 
 ---
 
-## What It Does
+## What the plugin does
 
-This plugin automatically monitors your network and notifies you about:
+The plugin automatically monitors the network and alerts you about:
 
-- 🆕 **New devices** connecting to your network
-- 🔄 **IP address changes** of existing devices
-- 📊 **Device history** with first/last seen timestamps
-- 🌐 **VLAN filtering** - monitor only specific network segments
+- 🆕 **New devices** connecting to the network
+- 📊 **Device history** with first/last detection timestamps
+- 📧 **Email notifications** with professional HTML design
+- 🔔 **Webhook notifications** (ntfy.sh, Discord, custom)
 
 ---
 
 ## Features
 
-✅ **Automatic ARP scanning** - detects devices every 5-30 minutes  
-✅ **Email notifications** - instant alerts for new devices and IP changes  
-✅ **VLAN filtering** - monitor only selected VLANs (e.g., LAN, VLAN20, VLAN50)  
-✅ **IP history tracking** - multiple IP addresses per MAC address  
-✅ **Web dashboard** - view statistics, run manual scans  
-✅ **Device management** - delete individual devices or clear entire database  
-✅ **Configurable intervals** - scan every 5, 10, 15, or 30 minutes  
-✅ **Test email button** - verify SMTP configuration  
+### 🎯 **Core features**
+
+✅ **Automatic ARP scanning** - device detection every 5-30 minutes  
+✅ **Email notifications** - beautiful HTML emails with professional design  
+✅ **Webhook notifications** - support for ntfy.sh, Discord, and custom webhooks  
+✅ **Device history** - tracking first and last detection  
+✅ **Vendor lookup** - automatic manufacturer detection from MAC address
+
+### 📧 **Notifications**
+
+✅ **Beautiful HTML emails** - professional design with inline CSS (works everywhere!)  
+✅ **Test buttons** - verify emails and webhooks directly from GUI  
+✅ **Detailed logging** - track success/failure of sending  
+✅ **Webhook support**:
+  - **ntfy.sh** - simple notification server
+  - **Discord** - webhooks to Discord channels
+  - **Generic** - any HTTP webhook endpoint
+
+### 🖥️ **Web interface**
+
+✅ **Dashboard** - statistics overview, manual scan trigger  
+✅ **Device management** - delete individual devices or entire database  
+✅ **Configurable intervals** - scanning every 5, 10, 15 or 30 minutes  
+✅ **Responsive design** - works on mobile and tablet  
+
+### 📊 **Technical features**
+
+✅ **SQLite database** - fast storage and search  
+✅ **Vendor lookup** - automatic manufacturer detection from MAC address (IEEE OUI database)  
+✅ **Daemon process** - runs in background as system service  
+✅ **Logging** - detailed logs in `/var/log/devicemonitor.log`  
+
+### 🚀 **Planned features (future versions)**
+
+🔜 **VLAN filtering** - monitoring only selected network segments  
+🔜 **GUI for logs** - viewing logs directly from web interface  
+🔜 **IP address history** - tracking IP changes for each device  
 
 ---
 
@@ -54,47 +81,51 @@ This plugin automatically monitors your network and notifies you about:
 
 ### Requirements
 
-- OPNsense 24.x or newer
-- Working SMTP configuration (System → Settings → Notifications)
-- SSH access enabled (System → Settings → Administration → Secure Shell)
-- Root password
+- **OPNsense 24.x or newer**
+- **SSH access enabled** (System → Settings → Administration → Secure Shell)
+- **Admin account** with CLI access (via PuTTY, Terminal, etc.)
+- **Working SMTP configuration** (System → Settings → Notifications) - **required for plugin operation**
+
+**Note:** The plugin requires working SMTP for sending notifications. Without SMTP configuration, the plugin will not work correctly.
 
 ---
 
-### Method 1: WinSCP + Manual Install (Recommended)
+### Method 1: WinSCP + Manual installation (Recommended)
 
 This method is easiest for users not familiar with command line.
 
-#### Step 1: Download Latest Version
+#### Step 1: Download the latest version
 
 Go to [**Releases**](../../releases) and download the latest archive:
 
 ```
-opnsense-devicemonitor31122025_1254.zip
+opnsense-devicemonitor31122025_1339.zip
 ```
 
-**File naming:**
+**Filename format:**
 - `opnsense-devicemonitor` = plugin name
 - `31122025` = date (DD.MM.YYYY)
-- `1254` = time (HH:MM)
+- `1339` = time (HH:MM)
 - `.zip` = archive format
 
-**Example:** `opnsense-devicemonitor31122025_1254.zip` = December 31, 2025 at 12:54
+**Example:** `opnsense-devicemonitor31122025_1254.zip` = December 31, 2025 at 13:39
 
-**Note:** Older versions can be found in `/old/` folder in releases.
+**Note:** Older versions can be found in the `/old/` folder in releases.
 
 #### Step 2: Enable SSH on OPNsense
 
 ```
-1. Login to OPNsense web interface
+1. Log in to OPNsense web interface (as admin)
 2. Go to: System → Settings → Administration
 3. Enable "Secure Shell"
-4. Check "Permit root user login"
+4. Check "Permit root user login" (or use admin account)
 5. Login Shell: /bin/csh (default is OK)
 6. Save
 ```
 
-#### Step 3: Upload File via WinSCP
+**Note:** You can log in as either `root` or `admin` - both have full permissions for installation.
+
+#### Step 3: Upload file via WinSCP
 
 **Download WinSCP:** https://winscp.net/
 
@@ -102,15 +133,17 @@ opnsense-devicemonitor31122025_1254.zip
 ```
 Host:     your.opnsense.ip.address
 Port:     22
-User:     root
-Password: your-root-password
+Username: root (or admin)
+Password: your-password
 ```
 
-**Upload steps:**
-1. In WinSCP, navigate to `/tmp/`
-2. Drag & drop `opnsense-devicemonitor31122025_1254.zip` into the window
+**Note:** Use either `root` or `admin` account - both work.
 
-#### Step 4: Install via SSH
+**Upload procedure:**
+1. In WinSCP, navigate to `/tmp/`
+2. Drag and drop `opnsense-devicemonitor31122025_1254.zip` into the window
+
+#### Step 4: Installation via SSH
 
 Use PuTTY (Windows) or Terminal (Mac/Linux) to connect:
 
@@ -121,7 +154,7 @@ ssh root@your.opnsense.ip
 Then run:
 
 ```bash
-# Navigate to archive location
+# Navigate to the folder with the archive
 cd /tmp
 
 # Extract archive
@@ -132,13 +165,13 @@ cd opnsense-devicemonitor
 sh install.sh
 ```
 
-**Note:** OPNsense restart is **NOT required** - installation script handles everything!
+**Note:** OPNsense restart is **NOT needed** - the installation script handles everything!
 
 ---
 
-### Method 2: Direct SSH Install
+### Method 2: Direct SSH installation
 
-For advanced users comfortable with command line:
+For advanced users familiar with command line:
 
 ```bash
 # Connect via SSH
@@ -158,7 +191,7 @@ sh install.sh
 
 **For older versions:**
 
-To install an older version, modify URL:
+If you want to install an older version, modify the URL:
 
 ```bash
 fetch https://github.com/hacesoft/opnsense-devicemonitor/releases/download/old/opnsense-devicemonitorDDMMYYYY_HHMM.zip
@@ -168,45 +201,106 @@ fetch https://github.com/hacesoft/opnsense-devicemonitor/releases/download/old/o
 
 ## Configuration
 
-After installation, navigate to: **Services → DeviceMonitor → Settings**
+After installation, go to: **Services → DeviceMonitor → Settings**
 
-### Basic Configuration
+### Basic configuration
 
 | Setting | Description | Example |
 |---------|-------------|---------|
-| **Enable Device Monitor** | Turn monitoring on/off | ✅ Checked |
-| **Email (To)** | Your email for alerts | `admin@example.com` |
-| **Email (From)** | Sender address | `opnsense@yourdomain.com` |
+| **Enable Device Monitor** | Enable/disable monitoring | ✅ Checked |
 | **Scan Interval** | How often to scan | `5 minutes` |
-| **VLAN Filter** | Which VLANs to monitor | `LAN,VLAN20,VLAN50` |
+| **Show .local Domain** | Show `.local` in hostname | ❌ Unchecked |
 
-### VLAN Filter Examples
+---
 
-**Monitor all networks:**
+### Email notifications
+
+**⚠️ IMPORTANT:** The plugin requires working SMTP configuration! Without SMTP, notifications will not work.
+
+**SMTP configuration:**
 ```
-LAN,VLAN11,VLAN20,VLAN30,VLAN50,VLAN70,VLAN80
+System → Settings → Notifications → E-Mail
 ```
+Configure SMTP server, port, authentication (username/password).
 
-**Monitor only LAN and guest network:**
+| Setting | Description | Example |
+|---------|-------------|---------|
+| **Enable Email** | Enable email notifications | ✅ Checked |
+| **Email (To)** | Your email for notifications | `admin@example.com` |
+| **Email (From)** | Sender email address | `opnsense@yourdomain.com` |
+| **Test Email** | Send test email | 🧪 Button |
+
+**Email format:**
+- 🎨 **Professional HTML design** with OPNsense colors
+- 📱 **Responsive** - works on all devices
+- 🎯 **Inline CSS** - displays correctly in Gmail, Outlook, etc.
+- 📊 **Clear table** with MAC, Vendor, IP, Hostname
+- 🔔 **Beautiful header** with gradient and icons
+
+### Webhook notifications
+
+| Setting | Description | Example |
+|---------|-------------|---------|
+| **Enable Webhook** | Enable webhook notifications | ✅ Checked |
+| **Webhook URL** | URL for webhook | `https://ntfy.sh/mytopic` |
+| **Test Webhook** | Send test webhook | 🧪 Button |
+
+**Supported webhook types:**
+
+#### 1. **ntfy.sh** (Recommended for beginners)
 ```
-LAN,VLAN50
+https://ntfy.sh/mySecretWord123
 ```
+- ✅ Free, no registration
+- ✅ Mobile app (iOS/Android)
+- ✅ Web interface
+- 📱 Instant push notifications on mobile
 
-**Monitor single VLAN:**
+**How to set up:**
+1. Think of a unique name (e.g., `mySecretWord123`)
+2. URL: `https://ntfy.sh/mySecretWord123`
+3. Download ntfy app: https://ntfy.sh/
+4. Add topic `mySecretWord123`
+5. Done! Now you'll receive notifications on your phone 📱
+
+#### 2. **Discord**
 ```
-VLAN20
+https://discord.com/api/webhooks/1234567890/AbCdEfGhIjKlMnOpQrStUvWxYz
 ```
+- ✅ Notifications to Discord channel
+- ✅ Embed messages with formatting
+- ✅ Ideal for teams
 
-**Important:** VLAN names must match your interface names exactly!
+**How to get Discord webhook:**
+1. Go to Discord server
+2. Click on channel → Edit channel → Integrations → Webhooks
+3. Create new webhook
+4. Copy URL
 
-### Test Configuration
+#### 3. **Generic (Custom)**
+Any HTTP POST endpoint:
+```
+https://my.domain.com/webhook
+```
+- ✅ Your own webhook server
+- ✅ JSON payload with device data
+- ✅ For advanced users
 
-1. Click **Test Email** button
-2. Check your inbox
-3. If email doesn't arrive:
-   - Verify SMTP settings: System → Settings → Notifications
-   - Check spam folder
-   - Review logs: `grep devicemonitor /var/log/system.log`
+### Test configuration
+
+**Buttons in GUI:**
+- 🧪 **Test Email** - sends test email (verifies SMTP configuration)
+- 🧪 **Test Webhook** - sends test webhook (verifies URL and availability)
+
+**What is tested:**
+- ✅ Configuration correctness
+- ✅ SMTP server / webhook URL availability
+- ✅ Message format
+- ✅ Result logging
+
+**Test result:**
+- ✅ **Success** - everything works correctly
+- ❌ **Failed** - check configuration (see logs)
 
 ---
 
@@ -214,356 +308,364 @@ VLAN20
 
 ### Dashboard
 
-**Location:** Services → DeviceMonitor → Dashboard
+**Services → DeviceMonitor → Dashboard**
 
-**Shows:**
-- 📊 Total Devices - all devices ever seen
-- 🆕 New Today - devices detected today
-- ⏰ Last Cron Run - timestamp of last automatic scan
-- 🔄 Scan Now - manual scan button
-- 📋 View All Devices - link to device list
-
-### Device List
-
-**Location:** Services → DeviceMonitor → Devices
-
-**Table columns:**
-- MAC Address
-- IP Address
-- Hostname (resolved via reverse DNS)
-- VLAN (network segment)
-- First Seen (first detection date/time)
-- Last Seen (most recent detection)
-- Actions (delete icon)
-
-**Operations:**
-- ☑️ **Select multiple** - checkbox on left
-- 🗑️ **Delete Selected** - remove checked devices
-- 🗑️ **Individual delete** - trash icon per device
-
-### Settings Page
-
-**Location:** Services → DeviceMonitor → Settings
+**Displays:**
+- 📊 **Total device count**
+- 🆕 **New devices (today)**
+- 🔔 **Pending notifications**
+- ⏰ **Last scan**
 
 **Actions:**
-- 💾 **Save** - store configuration
-- ✉️ **Test Email** - verify SMTP works
-- ⚠️ **Clear Database** - delete ALL device records (confirmation required)
+- 🔄 **Scan Now** - immediate scan trigger
+- 📧 **Send Notifications** - manual notification sending
 
----
+### Device list
 
-## Plugin Structure
+**Services → DeviceMonitor → Devices**
 
-### Directory Structure
+**Table:**
+| Column | Description |
+|--------|-------------|
+| **MAC** | Device MAC address (with vendor info) |
+| **Vendor** | Manufacturer (from IEEE OUI database) |
+| **IP** | Current IP address |
+| **Hostname** | Device name (from DNS) |
+| **First Seen** | First detection |
+| **Last Seen** | Last activity |
+| **Actions** | 🗑️ Delete device |
 
+**Features:**
+- 🔍 **Search** - filter by MAC, IP, Vendor...
+- 📊 **Sorting** - click on column to sort
+- 🗑️ **Deletion** - delete individual devices or all at once
+
+### Logging
+
+**All operations are logged to:**
 ```
-opnsense-devicemonitor/
-├── install.sh                          # Installation script
-├── uninstall.sh                        # Uninstallation script
-├── README.md                           # Documentation (EN)
-├── README_CZ.md                        # Documentation (CZ)
-├── LICENSE                             # BSD 2-Clause license
-├── +MANIFEST                           # PKG metadata
-├── +INSTALL                            # Post-install hook
-├── +DEINSTALL                          # Post-uninstall hook
-├── etc/
-│   └── inc/
-│       └── plugins.inc.d/
-│           └── devicemonitor.inc       # Plugin hook
-└── usr/
-    └── local/
-        └── opnsense/
-            ├── mvc/app/
-            │   ├── controllers/
-            │   │   └── OPNsense/DeviceMonitor/
-            │   │       ├── IndexController.php       # Main controller
-            │   │       ├── Api/
-            │   │       │   ├── SettingsController.php   # Settings API
-            │   │       │   ├── DevicesController.php    # Devices API
-            │   │       │   └── ServiceController.php    # Service API
-            │   │       └── forms/
-            │   │           └── general.xml              # Form definition
-            │   ├── models/
-            │   │   └── OPNsense/DeviceMonitor/
-            │   │       ├── DeviceMonitor.xml         # Model XML
-            │   │       ├── DeviceMonitor.php         # Model PHP
-            │   │       ├── Menu/
-            │   │       │   └── Menu.xml              # Menu definition
-            │   │       └── ACL/
-            │   │           └── ACL.xml               # ACL definition
-            │   └── views/
-            │       └── OPNsense/DeviceMonitor/
-            │           ├── index.volt                # Dashboard view
-            │           ├── devices.volt              # Devices view
-            │           └── settings.volt             # Settings view
-            ├── scripts/devicemonitor/
-            │   ├── scan.sh                           # ARP scanner script
-            │   └── testemail.sh                      # Test email script
-            └── service/conf/actions.d/
-                └── actions_devicemonitor.conf        # Configd actions
+/var/log/devicemonitor.log
 ```
 
-### Database and Logs
+**Log types:**
+- `[DAEMON]` - daemon process (startup, scanning...)
+- `[EMAIL]` - email notifications (success/error)
+- `[WEBHOOK]` - webhook notifications (success/error)
+- `[SCAN]` - network scanning
+- `[DATABASE]` - database operations
 
+**Example log:**
 ```
-/var/db/known_devices.db                # SQLite device database
-/var/log/devicemonitor_cron.log         # Cron run log
-```
-
-### Database Format
-
-**File:** `/var/db/known_devices.db`
-
-**Format:** Pipe-separated values (|)
-
-```
-MAC|IP|Hostname|FirstSeen|LastSeen|Source|Interface|VLAN
+[2026-01-10 15:34:25] [PHP-EMAIL] Preparing email for 38 devices
+[2026-01-10 15:34:26] [PHP-EMAIL] SUCCESS: Email sent (REAL mode, 38 devices)
+[2026-01-10 15:35:00] [PHP-WEBHOOK] SUCCESS: Webhook sent (REAL mode, 38 devices) - HTTP 200
 ```
 
-**Example entry:**
-```
-aa:bb:cc:dd:ee:ff|192.168.1.100|PC-John|2025-11-30 10:15:23|2025-12-01 08:45:12|ARP|igc0|LAN
-```
-
----
-
-## How It Works
-
-### Technical Overview
-
-1. **Cron Job**: OPNsense cron runs scan script every X minutes (configured interval)
-2. **ARP Scan**: Script executes `arp -an` to get current devices
-3. **VLAN Filtering**: Only devices on allowed VLANs are processed
-4. **Database Check**: Compares current devices with stored database
-5. **Email Alerts**: Sends notification for:
-   - New MAC address detected
-   - Existing MAC with different IP address
-6. **Database Update**: Records device information to SQLite database
-7. **Logging**: Writes timestamp to `/var/log/devicemonitor_cron.log`
-
-### Manual Commands
-
+**Viewing logs:**
 ```bash
-# Test email notification
-configctl devicemonitor testemail
+# Recent entries
+tail -50 /var/log/devicemonitor.log
 
-# Run manual scan
-configctl devicemonitor scan
+# Real-time monitoring
+tail -f /var/log/devicemonitor.log
 
-# View raw database
-cat /var/db/known_devices.db
-
-# Check last cron execution
-cat /var/log/devicemonitor_cron.log
-
-# View plugin logs
-grep devicemonitor /var/log/system.log | tail -20
+# Filter only email logs
+grep EMAIL /var/log/devicemonitor.log
 ```
+
+---
+
+## Plugin structure
+
+### Plugin files
+
+```
+/usr/local/opnsense/
+├── mvc/app/
+│   ├── controllers/OPNsense/DeviceMonitor/
+│   │   ├── IndexController.php           # GUI pages
+│   │   └── Api/
+│   │       ├── ConfigController.php       # Configuration API
+│   │       ├── DevicesController.php      # Devices API
+│   │       ├── ServiceController.php      # Service API
+│   │       ├── DashboardController.php    # Dashboard API
+│   │       └── OuiController.php          # OUI database API
+│   ├── models/OPNsense/DeviceMonitor/
+│   │   ├── DeviceMonitor.php             # Model
+│   │   ├── DeviceMonitor.xml             # Configuration
+│   │   ├── defaults.json                 # Default values
+│   │   ├── Menu/Menu.xml                 # Menu
+│   │   └── ACL/ACL.xml                   # Permissions
+│   └── views/OPNsense/DeviceMonitor/
+│       ├── index.volt                    # Dashboard
+│       ├── settings.volt                 # Settings
+│       └── devices.volt                  # Device list
+├── scripts/OPNsense/DeviceMonitor/
+│   ├── monitor_daemon.py                 # Main daemon
+│   ├── scan_network.py                   # Scanning script
+│   ├── NotificationHandler.php           # Email/Webhook handler
+│   ├── notify_email.php                  # Email CLI script
+│   ├── notify_webhook.php                # Webhook CLI script
+│   └── download_oui.py                   # OUI database download
+├── service/conf/actions.d/
+│   └── actions_devicemonitor.conf        # Configd actions
+└── /var/db/devicemonitor/
+    ├── devices.db                        # SQLite database
+    ├── config.json                       # Runtime configuration
+    └── oui.txt                           # IEEE OUI database
+```
+
+### Database structure
+
+**devices.db (SQLite3):**
+```sql
+CREATE TABLE devices (
+    id INTEGER PRIMARY KEY,
+    mac TEXT UNIQUE NOT NULL,
+    vendor TEXT,
+    ip TEXT,
+    hostname TEXT,
+    vlan TEXT,
+    first_seen TEXT,
+    last_seen TEXT,
+    notification_pending INTEGER DEFAULT 1
+);
+```
+
+### API Endpoints
+
+**Configuration:**
+- `GET  /api/devicemonitor/config/get` - Get configuration
+- `POST /api/devicemonitor/config/set` - Save configuration
+- `POST /api/devicemonitor/config/testemail` - Test email
+- `POST /api/devicemonitor/config/testwebhook` - Test webhook
+
+**Devices:**
+- `GET  /api/devicemonitor/devices/list` - Device list
+- `POST /api/devicemonitor/devices/delete` - Delete device
+- `POST /api/devicemonitor/devices/deleteall` - Delete all
+
+**Dashboard:**
+- `GET  /api/devicemonitor/dashboard/stats` - Statistics
+
+**Service:**
+- `POST /api/devicemonitor/service/start` - Start daemon
+- `POST /api/devicemonitor/service/stop` - Stop daemon
+- `POST /api/devicemonitor/service/restart` - Restart daemon
+- `GET  /api/devicemonitor/service/status` - Daemon status
+- `POST /api/devicemonitor/service/scan` - Manual scan
 
 ---
 
 ## Troubleshooting
 
-### Menu Not Appearing After Install
+### Plugin doesn't appear in menu
 
-**Symptoms:** Can't find "DeviceMonitor" in Services menu
-
-**Solution 1 - Clear cache:**
 ```bash
-rm -f /tmp/opnsense_menu_cache.xml
-rm -f /tmp/opnsense_acl_cache.json
-configctl webgui restart
+# Restart configd
+service configd restart
+
+# Restart web interface
+service php-fpm restart
+
+# Clear cache
+rm -rf /tmp/templates_c/*
 ```
 
-**Solution 2 - Restart OPNsense:**
+### Daemon won't start
+
 ```bash
-shutdown -r now
+# Check status
+service devicemonitor status
+
+# Check logs
+tail -50 /var/log/devicemonitor.log
+
+# Manual start
+/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py
+```
+
+### Email notifications not working
+
+**1. Check SMTP settings:**
+```
+System → Settings → Notifications
+```
+
+**2. Test email from GUI:**
+```
+Services → DeviceMonitor → Settings → Test Email
+```
+
+**3. Check logs:**
+```bash
+tail -50 /var/log/devicemonitor.log | grep EMAIL
+```
+
+**Common issues:**
+- ❌ **SMTP server not available** - check firewall rules
+- ❌ **Invalid email** - check email address format
+- ❌ **Authentication failed** - check SMTP credentials
+
+### Webhook notifications not working
+
+**1. Test webhook from GUI:**
+```
+Services → DeviceMonitor → Settings → Test Webhook
+```
+
+**2. Check logs:**
+```bash
+tail -50 /var/log/devicemonitor.log | grep WEBHOOK
+```
+
+**3. Check availability:**
+```bash
+# Test ntfy.sh
+curl -d "test" https://ntfy.sh/mySecretWord123
+
+# Test Discord (UPDATE URL!)
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"content": "test"}' \
+     https://discord.com/api/webhooks/YOUR_WEBHOOK_URL
+```
+
+**Common issues:**
+- ❌ **URL not available** - check firewall, internet connection
+- ❌ **Invalid URL format** - check it starts with `https://`
+- ❌ **Discord webhook expired** - create a new one
+
+---
+
+### Devices not being detected
+
+**1. Manual scan test:**
+```bash
+/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/scan_network.py
+```
+
+**2. Check ARP table:**
+```bash
+arp -an
+```
+
+**3. Check logs:**
+```bash
+tail -50 /var/log/devicemonitor.log | grep SCAN
+```
+
+**4. Check that daemon is running:**
+```bash
+service devicemonitor status
 ```
 
 ---
 
-### Settings Page Empty
+### Database is corrupted
 
-**Symptoms:** Settings page shows only buttons, no form fields
-
-**Diagnosis:**
 ```bash
-# Check if forms file exists
-ls -la /usr/local/opnsense/mvc/app/controllers/OPNsense/DeviceMonitor/forms/general.xml
-```
+# Backup current database
+cp /var/db/devicemonitor/devices.db /var/db/devicemonitor/devices.db.backup
 
-**Solution:**
-```bash
-# Restart webgui
-configctl webgui restart
+# Delete corrupted database
+rm /var/db/devicemonitor/devices.db
 
-# If still broken, reinstall plugin
-cd /tmp/opnsense-devicemonitor
-sh install.sh
+# Restart daemon (will create new one)
+service devicemonitor restart
 ```
 
 ---
 
-### Emails Not Sending
+### High CPU load
 
-**Check SMTP configuration:**
-1. System → Settings → Notifications
-2. Test using OPNsense built-in test: System → Settings → Notifications → Test
-3. If OPNsense test fails, fix SMTP settings first
-
-**Check plugin configuration:**
-1. Services → DeviceMonitor → Settings
-2. Click "Test Email"
-3. Check email address is correct
-
-**Check logs:**
-```bash
-# View plugin logs
-grep devicemonitor /var/log/system.log
-
-# View SMTP logs
-grep sendmail /var/log/maillog
+**Increase scan interval:**
 ```
-
----
-
-### Devices Not Being Detected
-
-**Check scan is running:**
-```bash
-# View last cron run time
-cat /var/log/devicemonitor_cron.log
-
-# Should show recent timestamp like: 2025-12-01 14:30:15
+Services → DeviceMonitor → Settings → Scan Interval
 ```
-
-**Check VLAN filter:**
-- Ensure VLAN names match your interfaces exactly
-- Case sensitive: `VLAN20` ≠ `vlan20`
-- Check interface names: Interfaces → Assignments
-
-**Run manual scan:**
-```bash
-# Should output device detections
-configctl devicemonitor scan
-```
-
----
-
-### Installation Script Fails
-
-**Error: "Command not found" or "not found" messages**
-
-**Cause:** Windows line endings (CRLF) in script files
-
-**Solution:**
-```bash
-cd /tmp/opnsense-devicemonitor
-sed -i '' 's/\r$//' install.sh
-sed -i '' 's/\r$//' uninstall.sh
-sh install.sh
-```
+Set to 15 or 30 minutes instead of 5.
 
 ---
 
 ## Versioning
 
-### Release Naming Convention
-
-**Archive format:**
+**Version format:**
 ```
-opnsense-devicemonitorDDMMYYYY_HHMM.zip
+DDMMYYYY_HHMM
 ```
 
-Where:
-- `DD` = Day (01-31)
-- `MM` = Month (01-12)
-- `YYYY` = Year (4 digits)
-- `HH` = Hour (00-23, 24-hour format)
-- `MM` = Minutes (00-59)
+**Example:**
+- `31122025_1339` = December 31, 2025, 13:39
+- `01012026_0900` = January 1, 2026, 09:00
 
-**Examples:**
-- `opnsense-devicemonitor31122025_1254.zip` = December 31, 2025 at 12:54 PM
-- `opnsense-devicemonitor15012026_0920.zip` = January 15, 2026 at 9:20 AM
+**Where to find version:**
+```bash
+# In GUI
+Services → DeviceMonitor → Settings (in footer)
 
-### Version Organization
-
-**Current version:**
-- Latest release is always on main [Releases](../../releases) page
-- Full archive contains entire plugin ready to install
-
-**Old versions:**
-- Previous releases moved to `/old/` folder
-- Available for rollback if needed
-- Named with same timestamp format
-
-### Changes from Previous Version
-
-**Version 31122025_1254:**
-- First public release
-- Complete PKG structure
-- Documentation in Czech and English
+# In files
+head -10 /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py
+```
 
 ---
 
 ## Uninstallation
 
-### Remove Plugin
+### Method 1: Uninstall script (Recommended)
 
 ```bash
-# Navigate to installation directory
-cd /tmp/opnsense-devicemonitor
+ssh root@opnsense
 
-# Run uninstall script
+cd /tmp
+# Download plugin (or use existing)
+unzip opnsense-devicemonitor*.zip
+cd opnsense-devicemonitor
+
+# Run uninstall
 sh uninstall.sh
 ```
 
-**What gets removed:**
-- All plugin files from `/usr/local/opnsense/`
-- Plugin hook from `/etc/inc/plugins.inc.d/`
-- Cron jobs
-- Menu cache
-
-**What is preserved:**
-- Database: `/var/db/known_devices.db`
-- Logs: `/var/log/devicemonitor_cron.log`
-
-### Complete Removal
-
-To also remove database and logs:
+### Method 2: Manual uninstallation
 
 ```bash
-rm -f /var/db/known_devices.db
-rm -f /var/log/devicemonitor_cron.log
+# Stop daemon
+service devicemonitor stop
+
+# Delete files
+rm -rf /usr/local/opnsense/mvc/app/controllers/OPNsense/DeviceMonitor
+rm -rf /usr/local/opnsense/mvc/app/models/OPNsense/DeviceMonitor
+rm -rf /usr/local/opnsense/mvc/app/views/OPNsense/DeviceMonitor
+rm -rf /usr/local/opnsense/scripts/OPNsense/DeviceMonitor
+rm -f /usr/local/opnsense/service/conf/actions.d/actions_devicemonitor.conf
+rm -f /etc/rc.d/devicemonitor
+
+# Delete data (OPTIONAL - you'll lose database!)
+rm -rf /var/db/devicemonitor
+rm -f /var/log/devicemonitor.log
+
+# Restart services
+service configd restart
+service php-fpm restart
 ```
+
+**Note:** After uninstallation, the plugin will disappear from the menu. You may need to clear browser cache (Ctrl+Shift+R).
 
 ---
 
 ## Support
 
-### Get Help
+**GitHub Issues:**
+https://github.com/hacesoft/opnsense-devicemonitor/issues
 
-- 🐛 **Bug Reports:** [GitHub Issues](../../issues/new)
-- 💬 **Questions:** [GitHub Discussions](../../discussions)
-- 📧 **Email:** hacesoft@mujmail.cz
+**Author:**
+- GitHub: [@hacesoft](https://github.com/hacesoft)
+- Web: [hacesoft.cz](https://hacesoft.cz)
 
 ---
 
 ## License
 
-BSD 2-Clause License - see [LICENSE](LICENSE) file
+MIT License - see [LICENSE](LICENSE) file
 
 ---
 
-## Author
-
-**Hacesoft**
-
-- 🌐 Website: [hacesoft.cz](https://hacesoft.cz)
-- 📧 Email: hacesoft@mujmail.cz
-- 💻 GitHub: [@hacesoft](https://github.com/hacesoft)
-- 📦 **All Projects:** [github.com/hacesoft?tab=repositories](https://github.com/hacesoft?tab=repositories)
-
----
-
-**[⬆ Back to top](#opnsense-device-monitor)**
+**🎉 Done! Enjoy automatic device monitoring in OPNsense!**
