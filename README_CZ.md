@@ -1,5 +1,7 @@
 # OPNsense Device Monitor
 
+<img width="2116" height="1087" alt="image" src="https://github.com/user-attachments/assets/c7d809ed-48df-493b-b3b3-3717762b216f" />
+
 **[🇬🇧 English version](README.md)** | **[👨‍💻 Další projekty autora](https://github.com/hacesoft?tab=repositories)**
 
 ---
