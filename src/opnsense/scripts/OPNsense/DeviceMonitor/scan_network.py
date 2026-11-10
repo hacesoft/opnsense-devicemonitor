@@ -11,7 +11,7 @@ import re
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config_hostnames import kea_reservation_names
+from config_hostnames import kea_reservation_names, merge_names
 
 # ================================================================
 # KONFIGURACE - ZAPNI/VYPNI FUNKCE
@@ -446,11 +446,12 @@ def full_scan():
         log("CHYBA: Žádná data z hostwatch DB")
         return 1
 
-    # 2. DHCP popisky (ISC + Dnsmasq, Dnsmasq má přednost)
-    dhcp_descriptions = get_dhcp_descriptions()
-    dhcp_descriptions.update(get_kea_descriptions())  # Kea overrides ISC for the same MAC
-    dnsmasq_descriptions = get_dnsmasq_descriptions()
-    dhcp_descriptions.update(dnsmasq_descriptions)  # Dnsmasq přepíše ISC pokud existuje stejné MAC
+    # 2. DHCP names (precedence: Dnsmasq > Kea > ISC)
+    dhcp_descriptions = merge_names(
+        get_dhcp_descriptions(),
+        get_kea_descriptions(),
+        get_dnsmasq_descriptions(),
+    )
 
     # 3. Aktualizace vlastní DB
     new_devices = []

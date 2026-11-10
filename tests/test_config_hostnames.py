@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'src', 'opnsense', 'scripts',
     'OPNsense', 'DeviceMonitor'))
 
-from config_hostnames import kea_reservation_names  # noqa: E402
+from config_hostnames import kea_reservation_names, merge_names  # noqa: E402
 
 
 def parse(xml):
@@ -38,6 +38,15 @@ class KeaReservationNames(unittest.TestCase):
 
     def test_no_kea_section(self):
         self.assertEqual(kea_reservation_names(parse('<opnsense/>')), {})
+
+
+class MergeNames(unittest.TestCase):
+    def test_precedence_dnsmasq_over_kea_over_isc(self):
+        isc = {'a': 'isc', 'b': 'isc', 'c': 'isc'}
+        kea = {'b': 'kea', 'c': 'kea'}
+        dnsmasq = {'c': 'dns'}
+        self.assertEqual(merge_names(isc, kea, dnsmasq),
+                         {'a': 'isc', 'b': 'kea', 'c': 'dns'})
 
 
 if __name__ == '__main__':

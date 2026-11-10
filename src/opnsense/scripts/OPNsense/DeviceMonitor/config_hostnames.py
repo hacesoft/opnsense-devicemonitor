@@ -23,3 +23,11 @@ def kea_reservation_names(root):
         if name:
             names[mac.lower()] = name
     return names
+
+
+def merge_names(isc, kea, dnsmasq):
+    """Combine name maps. Precedence for the same MAC: Dnsmasq > Kea > ISC."""
+    merged = dict(isc)
+    merged.update(kea)
+    merged.update(dnsmasq)
+    return merged
