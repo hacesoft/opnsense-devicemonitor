@@ -10,6 +10,9 @@ import subprocess
 import re
 import xml.etree.ElementTree as ET
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config_hostnames import kea_reservation_names, merge_names
+
 # ================================================================
 # KONFIGURACE - ZAPNI/VYPNI FUNKCE
 # ================================================================
@@ -292,6 +295,16 @@ def get_dnsmasq_descriptions():
         log(f"Chyba čtení Dnsmasq config.xml: {e}")
     return descriptions
 
+def get_kea_descriptions():
+    """Load hostnames from Kea DHCPv4 reservations (/conf/config.xml)"""
+    try:
+        names = kea_reservation_names(ET.parse('/conf/config.xml').getroot())
+        log(f"Kea reservations: {len(names)} entries")
+        return names
+    except Exception as e:
+        log(f"Error reading Kea reservations: {e}")
+        return {}
+
 def is_recently_seen(last_seen_str, minutes=15):
     """True pokud bylo zařízení viděno v posledních N minutách (porovnání v UTC)"""
     if not last_seen_str:
@@ -433,10 +446,12 @@ def full_scan():
         log("CHYBA: Žádná data z hostwatch DB")
         return 1
 
-    # 2. DHCP popisky (ISC + Dnsmasq, Dnsmasq má přednost)
-    dhcp_descriptions = get_dhcp_descriptions()
-    dnsmasq_descriptions = get_dnsmasq_descriptions()
-    dhcp_descriptions.update(dnsmasq_descriptions)  # Dnsmasq přepíše ISC pokud existuje stejné MAC
+    # 2. DHCP names (precedence: Dnsmasq > Kea > ISC)
+    dhcp_descriptions = merge_names(
+        get_dhcp_descriptions(),
+        get_kea_descriptions(),
+        get_dnsmasq_descriptions(),
+    )
 
     # 3. Aktualizace vlastní DB
     new_devices = []
