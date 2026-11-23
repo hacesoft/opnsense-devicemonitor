@@ -1,9 +1,11 @@
 #!/bin/sh
 
 # Předpona b označuje příznak 0/1.
-# Historie: 2.3.1 – odstranění vlastních katalogů z adresáře locale.
+# Historie:
+# 2.3.1 – odstranění vlastních katalogů z adresáře locale.
+# 2.3.2 – anglický výpis i při volání z instalátoru.
 
-# Device Monitor - Uninstall Script
+# Odinstalační skript Device Monitoru
 # Podporuje tichý režim pro reinstalaci: ./uninstall.sh --silent
 
 bSilentMode=0
@@ -15,150 +17,147 @@ fi
 
 if [ "$bSilentMode" -eq 0 ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  Device Monitor - Odinstalace"
+    echo "  Device Monitor - Uninstallation"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 fi
 
-# Kontrola root
+# Kontrola oprávnění uživatele root
 [ "$(id -u)" != "0" ] && {
-    echo "CHYBA: Musíš být root!"
+    echo "ERROR: Run this uninstaller as root."
     exit 1
 }
 
 # ============================================
-# 1. ZASTAVENÍ SLUŽEB
+# [1/6] Zastavení služby / Stopping the service
 # ============================================
 
-echo "[1/6] Zastavuji daemon..."
+echo "[1/6] Stopping the daemon..."
 # Zastav přes configd (ne service status který vrací exit 1)
 pkill -f monitor_daemon.py 2>/dev/null || true
 sleep 1
 rm -f /var/run/devicemonitor.pid
-echo "  ✓ Daemon zastaven"
+echo "  ✓ Daemon stopped"
 
 
 # ============================================
-# 3. AUTOSTART
+# [2/6] Vypnutí automatického spouštění / Disabling automatic startup
 # ============================================
 
-echo "[3/6] Vypínám autostart..."
+echo "[2/6] Disabling automatic startup..."
 rm -f /etc/rc.conf.d/devicemonitor
 
 if grep -q "devicemonitor_enable" /etc/rc.conf.local 2>/dev/null; then
     sed -i '' '/devicemonitor_enable/d' /etc/rc.conf.local
 fi
 
-echo "  ✓ Autostart vypnut"
+echo "  ✓ Automatic startup disabled"
 
 # ============================================
-# 4. SOUBORY PLUGINU
+# [3/6] Odstranění souborů pluginu / Removing plugin files
 # ============================================
 
-echo "[4/6] Odstraňuji soubory pluginu..."
+echo "[3/6] Removing plugin files..."
 
-# RC script
+# Spouštěcí skript služby a jeho odkaz
 rm -f /usr/local/etc/rc.d/devicemonitor
 rm -f /etc/rc.d/devicemonitor
 
-# Smazat také nový skript
+# Pomocný skript pro zjištění stavu služby
 rm -f /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/daemon_status.sh
 
-# 
+# Registrace služby
 rm -f /usr/local/etc/inc/plugins.inc.d/devicemonitor.inc
 
-# Models
+# Modely
 rm -rf /usr/local/opnsense/mvc/app/models/OPNsense/DeviceMonitor
 
-# Controllers
+# Řadiče
 rm -rf /usr/local/opnsense/mvc/app/controllers/OPNsense/DeviceMonitor
 
-# Views
+# Šablony
 rm -rf /usr/local/opnsense/mvc/app/views/OPNsense/DeviceMonitor
 
-# Scripts
+# Provozní skripty
 rm -rf /usr/local/opnsense/scripts/OPNsense/DeviceMonitor
 
-# Configd actions
+# Akce configd
 rm -f /usr/local/opnsense/service/conf/actions.d/actions_devicemonitor.conf
 
-# Config files
+# Dočasná konfigurace
 rm -f /tmp/devicemonitor_config.json
 
 # Nový JS widget (OPNsense 26.x)
 rm -f /usr/local/opnsense/www/js/widgets/DeviceMonitor.js
 rm -f /usr/local/opnsense/www/js/widgets/Metadata/DeviceMonitor.xml
 
-echo "  ✓ Soubory pluginu odstraněny"
+echo "  ✓ Plugin files removed"
 
 # ============================================
-# 5. PŘEKLADY
+# [4/6] Odstranění překladů / Removing translations
 # ============================================
 
-echo "[5/6] Odstraňuji překlady..."
+echo "[4/6] Removing translations..."
 rm -f /usr/local/opnsense/mvc/app/languages/cs_CZ_devicemonitor.po
 rm -f /usr/local/opnsense/mvc/app/languages/cs_CZ_devicemonitor.mo
 rm -f /usr/local/opnsense/mvc/app/languages/en_US_devicemonitor.po
 rm -f /usr/local/opnsense/mvc/app/languages/en_US_devicemonitor.mo
 rm -f /usr/local/share/locale/cs_CZ/LC_MESSAGES/devicemonitor.mo
 rm -f /usr/local/share/locale/en_US/LC_MESSAGES/devicemonitor.mo
-echo "  ✓ Překlady odstraněny"
+echo "  ✓ Translations removed"
 
 # ============================================
-# 6. DATABÁZE A DATA
+# [5/6] Databáze a nastavení / Database and settings
 # ============================================
 
 if [ "$bSilentMode" -eq 1 ]; then
     # Tichý režim (reinstalace) - NEMAZAT DATA!
-    echo "[6/6] Ponechávám databázi (reinstalace)..."
+    echo "[5/6] Preserving the database and settings for upgrade..."
     echo "  → /var/db/devicemonitor/devices.db"
 else
     # Normální odinstalace - smazat vše
-    echo "[6/6] Odstraňuji databázi ..."
-    
+    echo "[5/6] Removing the database and settings..."
+
     if [ -d "/var/db/devicemonitor" ]; then
         rm -rf /var/db/devicemonitor
-        echo "  ✓ Databáze smazána"
+        echo "  ✓ Database directory removed"
     else
-        echo "  → Databáze nenalezena"
+        echo "  → Database directory not found"
     fi
 fi
 
 # ============================================
-# VYČISTĚNÍ CACHE
+# [6/6] Vyčištění mezipaměti / Clearing caches
 # ============================================
 
-if [ "$bSilentMode" -eq 0 ]; then
-    echo ""
-    echo "Čistím cache..."
-fi
+echo "[6/6] Clearing caches..."
 
 rm -f /tmp/opnsense_menu_cache.xml
 rm -f /tmp/opnsense_acl_cache.json
 rm -rf /var/cache/opnsense/templates/* 2>/dev/null || true
 
 # ============================================
-# RESTART SLUŽEB (pouze při normální odinstalaci)
+# Restart služeb při úplné odinstalaci / Restarting services after full removal
 # ============================================
 
 if [ "$bSilentMode" -eq 0 ]; then
     echo ""
-    echo "Aktualizuji menu a restartuji služby..."
-    
+    echo "Updating the menu and restarting services..."
+
     /usr/local/etc/rc.configure_plugins
     service configd restart
     sleep 2
     configctl webgui restart
     sleep 2
     service php-fpm restart
-    
+
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  ✓ Odinstalace dokončena!"
+    echo "  ✓ Uninstallation complete!"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "Plugin byl odstraněn z GUI."
-    echo "Pro úplné vyčištění restartuj prohlížeč (Ctrl+Shift+R)."
+    echo "The plugin has been removed from the web interface."
+    echo "Reload the page with Ctrl+Shift+R to clear cached browser content."
     echo ""
 fi
 

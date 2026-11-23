@@ -2,6 +2,11 @@
 
 [Project overview](../../README.md) · [Česky](../cz/HISTORIE_VERZI.md)
 
+## v2.3.2
+
+- Install and uninstall messages are now in English. Source comments remain in Czech, with Czech and English section headings.
+- The installer now finds its bundled uninstaller during upgrades and stops if that uninstaller reports failure.
+
 ## v2.3.1
 
 - Fix the documented direct download link for the previously published ZIP (#6).

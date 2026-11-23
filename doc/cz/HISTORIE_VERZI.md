@@ -2,6 +2,11 @@
 
 [Přehled projektu](../../README_CZ.md) · [English](../en/CHANGELOG.md)
 
+## v2.3.2
+
+- Instalace i odinstalace vypisují hlášky anglicky. Komentáře ve zdrojích jsou česky a nadpisy sekcí jsou dvojjazyčné.
+- Instalátor při aktualizaci správně najde přiložený odinstalátor. Pokud odinstalátor vrátí chybu, aktualizace se zastaví.
+
 ## v2.3.1
 
 - Opravený přímý odkaz na dříve zveřejněný instalační ZIP v dokumentaci (#6).
