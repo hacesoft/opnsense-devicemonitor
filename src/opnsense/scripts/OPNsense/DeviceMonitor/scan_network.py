@@ -1,5 +1,9 @@
 #!/usr/local/bin/python3
 
+# Předpony v upraveném kódu: d = slovník, i = celé číslo, l = seznam,
+# o = objekt, s = řetězec, set = množina, t = n-tice z databáze.
+# Historie: 2.3.1 – načtení názvů z rezervací Kea DHCPv4 (PR #11).
+
 import sqlite3
 from datetime import datetime
 import os
@@ -9,6 +13,8 @@ import argparse
 import subprocess
 import re
 import xml.etree.ElementTree as ET
+
+from config_hostnames import kea_reservation_names, merge_names
 
 # ================================================================
 # KONFIGURACE - ZAPNI/VYPNI FUNKCE
@@ -292,6 +298,18 @@ def get_dnsmasq_descriptions():
         log(f"Chyba čtení Dnsmasq config.xml: {e}")
     return descriptions
 
+def get_kea_descriptions():
+    """Bez vstupu načte config.xml a vrátí mapu MAC adres na názvy rezervací Kea."""
+    try:
+        o_root = ET.parse('/conf/config.xml').getroot()
+        d_names = kea_reservation_names(o_root)
+        log(f"Kea reservations: {len(d_names)} entries")
+        return d_names
+    except (OSError, ET.ParseError) as o_error:
+        log(f"Error reading Kea reservations: {o_error}")
+        return {}
+
+
 def is_recently_seen(last_seen_str, minutes=15):
     """True pokud bylo zařízení viděno v posledních N minutách (porovnání v UTC)"""
     if not last_seen_str:
@@ -422,99 +440,99 @@ def update_status_only():
 
 
 def full_scan():
-    """Kompletní scan z OPNsense hostwatch DB + DHCP popisky"""
+    """Bez vstupu synchronizuje zařízení z Hostwatch s databází a vrátí stav 0/1."""
     log("Spouštím full scan (hostwatch DB)...")
-    config = load_config()
+    d_config = load_config()
     init_db()
 
     # 1. Data z hostwatch
-    devices = get_hostwatch_devices()
-    if not devices:
+    l_devices = get_hostwatch_devices()
+    if not l_devices:
         log("CHYBA: Žádná data z hostwatch DB")
         return 1
 
-    # 2. DHCP popisky (ISC + Dnsmasq, Dnsmasq má přednost)
-    dhcp_descriptions = get_dhcp_descriptions()
-    dnsmasq_descriptions = get_dnsmasq_descriptions()
-    dhcp_descriptions.update(dnsmasq_descriptions)  # Dnsmasq přepíše ISC pokud existuje stejné MAC
+    # Dnsmasq má přednost před Kea a Kea před ISC.
+    d_dhcp_names = merge_names(
+        get_dhcp_descriptions(), get_kea_descriptions(), get_dnsmasq_descriptions()
+    )
 
     # 3. Aktualizace vlastní DB
-    new_devices = []
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    conn = sqlite3.connect(DB_FILE)
-    conn.execute('UPDATE devices SET is_active = 0, notification_pending = 0')
+    l_new_devices = []
+    s_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    o_connection = sqlite3.connect(DB_FILE)
+    o_connection.execute('UPDATE devices SET is_active = 0, notification_pending = 0')
 
-    for device in devices:
-        mac = device['mac']
-        if not mac:
+    for d_device in l_devices:
+        s_mac = d_device['mac']
+        if not s_mac:
             continue
 
         # Obohacení o DHCP popis
-        if mac in dhcp_descriptions:
-            device['hostname'] = dhcp_descriptions[mac]
+        if s_mac in d_dhcp_names:
+            d_device['hostname'] = d_dhcp_names[s_mac]
 
-        is_active = 1 if is_recently_seen(device.get('last_seen', '')) else 0
-        last_seen = device.get('last_seen') or now
-        first_seen = device.get('first_seen') or now
+        i_active = 1 if is_recently_seen(d_device.get('last_seen', '')) else 0
+        s_last_seen = d_device.get('last_seen') or s_now
+        s_first_seen = d_device.get('first_seen') or s_now
 
         # If the user manually deleted this device, ignore the same historical
         # Hostwatch record. A genuinely newer last_seen means the device has
         # returned to the network, so remove the tombstone and add it again.
-        deleted_row = conn.execute(
-            'SELECT last_seen FROM deleted_devices WHERE mac = ?', (mac,)
+        t_deleted_row = o_connection.execute(
+            'SELECT last_seen FROM deleted_devices WHERE mac = ?', (s_mac,)
         ).fetchone()
-        if deleted_row:
-            deleted_last_seen = deleted_row[0] or ''
-            if deleted_last_seen and last_seen <= deleted_last_seen:
+        if t_deleted_row:
+            s_deleted_last_seen = t_deleted_row[0] or ''
+            if s_deleted_last_seen and s_last_seen <= s_deleted_last_seen:
                 continue
-            conn.execute('DELETE FROM deleted_devices WHERE mac = ?', (mac,))
+            o_connection.execute('DELETE FROM deleted_devices WHERE mac = ?', (s_mac,))
 
-        row = conn.execute(
-            'SELECT mac, custom_hostname FROM devices WHERE mac = ?', (mac,)
+        t_row = o_connection.execute(
+            'SELECT mac, custom_hostname FROM devices WHERE mac = ?', (s_mac,)
         ).fetchone()
 
-        if row:
-            hostname = row[1] if row[1] else device['hostname']
-            conn.execute('''
+        if t_row:
+            s_hostname = t_row[1] if t_row[1] else d_device['hostname']
+            o_connection.execute('''
                 UPDATE devices
                 SET ip = ?, hostname = ?, vendor = ?, vlan = ?,
                     last_seen = ?, is_active = ?
                 WHERE mac = ?
-            ''', (device['ip'], hostname, device['vendor'],
-                  device['vlan'], last_seen, is_active, mac))
+            ''', (d_device['ip'], s_hostname, d_device['vendor'],
+                  d_device['vlan'], s_last_seen, i_active, s_mac))
         else:
-            conn.execute('''
+            o_connection.execute('''
                 INSERT INTO devices
                     (mac, ip, hostname, vendor, vlan, first_seen, last_seen,
                      is_active, notification_pending)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-            ''', (mac, device['ip'], device['hostname'], device['vendor'],
-                  device['vlan'], first_seen, last_seen, is_active))
-            device['first_seen'] = first_seen
-            new_devices.append(device)
+            ''', (s_mac, d_device['ip'], d_device['hostname'], d_device['vendor'],
+                  d_device['vlan'], s_first_seen, s_last_seen, i_active))
+            d_device['first_seen'] = s_first_seen
+            l_new_devices.append(d_device)
 
-    conn.commit()
-    online = conn.execute(
+    o_connection.commit()
+    i_online = o_connection.execute(
         "SELECT COUNT(*) FROM devices WHERE is_active = 1"
     ).fetchone()[0]
-    total = conn.execute("SELECT COUNT(*) FROM devices").fetchone()[0]
-    conn.close()
+    i_total = o_connection.execute("SELECT COUNT(*) FROM devices").fetchone()[0]
+    o_connection.close()
 
     # 4. Notifikace (s filtrováním podle VLAN)
-    log(f"Nová zařízení: {len(new_devices)}, Online: {online}/{total}")
-    if new_devices and config['enabled']:
-        email_vlans   = set(v.strip() for v in config.get('email_vlans',  '').split(',') if v.strip())
-        webhook_vlans = set(v.strip() for v in config.get('webhook_vlans', '').split(',') if v.strip())
-        email_devs    = [d for d in new_devices if not email_vlans   or d.get('vlan','') in email_vlans]
-        webhook_devs  = [d for d in new_devices if not webhook_vlans or d.get('vlan','') in webhook_vlans]
-        if email_devs and config.get('email_enabled') and config.get('email_to'):
-            send_email_via_php_api(email_devs)
-        if webhook_devs and config.get('webhook_enabled') and config.get('webhook_url'):
-            send_webhook_via_php_api(webhook_devs)
+    log(f"Nová zařízení: {len(l_new_devices)}, Online: {i_online}/{i_total}")
+    if l_new_devices and d_config['enabled']:
+        set_email_vlans   = set(s_vlan.strip() for s_vlan in d_config.get('email_vlans',  '').split(',') if s_vlan.strip())
+        set_webhook_vlans = set(s_vlan.strip() for s_vlan in d_config.get('webhook_vlans', '').split(',') if s_vlan.strip())
+        l_email_devices    = [d_entry for d_entry in l_new_devices if not set_email_vlans   or d_entry.get('vlan','') in set_email_vlans]
+        l_webhook_devices  = [d_entry for d_entry in l_new_devices if not set_webhook_vlans or d_entry.get('vlan','') in set_webhook_vlans]
+        if l_email_devices and d_config.get('email_enabled') and d_config.get('email_to'):
+            send_email_via_php_api(l_email_devices)
+        if l_webhook_devices and d_config.get('webhook_enabled') and d_config.get('webhook_url'):
+            send_webhook_via_php_api(l_webhook_devices)
 
     # Do not leave stale pending flags between scans/channels.
-    with sqlite3.connect(DB_FILE) as cleanup_conn:
-        cleanup_conn.execute('UPDATE devices SET notification_pending = 0')
+    with sqlite3.connect(DB_FILE) as o_cleanup_connection:
+        o_cleanup_connection.execute('UPDATE devices SET notification_pending = 0')
 
     return 0
 

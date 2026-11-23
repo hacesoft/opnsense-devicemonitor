@@ -7,9 +7,12 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Device Monitor 2.2\n"
+"Project-Id-Version: Device Monitor 2.3.1\n"
 "POT-Creation-Date: 2026-04-10 00:00+0000\n"
 "PO-Revision-Date: 2026-04-10 00:00+0000\n"
+"Last-Translator: Hacesoft\n"
+"Language-Team: English\n"
+"Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -364,3 +367,43 @@ msgstr "The current email settings are saved before the test is sent"
 #: settings.volt - email transport
 msgid "Please enter recipient email first"
 msgstr "Please enter recipient email first"
+
+#: ConfigController.php
+msgid "A POST request is required"
+msgstr "A POST request is required"
+
+#: ConfigController.php
+msgid "Invalid email delivery method"
+msgstr "Invalid email delivery method"
+
+#: ConfigController.php
+msgid "Invalid SMTP encryption type"
+msgstr "Invalid SMTP encryption type"
+
+#: ConfigController.php
+msgid "Invalid recipient email address"
+msgstr "Invalid recipient email address"
+
+#: ConfigController.php
+msgid "Invalid sender email address"
+msgstr "Invalid sender email address"
+
+#: ConfigController.php
+msgid "SMTP server is required"
+msgstr "SMTP server is required"
+
+#: ConfigController.php
+msgid "SMTP port must be between 1 and 65535"
+msgstr "SMTP port must be between 1 and 65535"
+
+#: ConfigController.php
+msgid "Webhook URL is required"
+msgstr "Webhook URL is required"
+
+#: ConfigController.php
+msgid "Invalid webhook URL"
+msgstr "Invalid webhook URL"
+
+#: ConfigController.php
+msgid "Scan interval must be between 60 and 3600 seconds"
+msgstr "Scan interval must be between 60 and 3600 seconds"

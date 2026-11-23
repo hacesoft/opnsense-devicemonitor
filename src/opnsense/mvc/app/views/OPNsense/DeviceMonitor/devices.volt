@@ -1,3 +1,5 @@
+{# Předpony v upraveném kódu: arr = pole, o = objekt, s = řetězec, $ = objekt jQuery.
+   Historie: 2.3.1 – názvy z konfigurace se zobrazují jako text. #}
 <div class="content-box">
     <div class="content-box-main">
 
@@ -266,36 +268,50 @@ $(document).ready(function() {
             .addClass(sortDir === 'asc' ? 'fa-sort-asc' : 'fa-sort-desc');
     }
 
-    // Render tabulky
-    function renderTable(rows) {
+    // Vstup: řádky zařízení. Výstup: aktualizovaná tabulka v DOM.
+    function renderTable(arrRows) {
         var $tbody = $('#grid-devices tbody').empty();
-        rows.forEach(function(row) {
-            var statusHtml = row.status==='online'
+        arrRows.forEach(function(oRow) {
+            var sMac = oRow.mac || '';
+            var sIp = oRow.ip || '';
+            var sHostname = oRow.hostname || '';
+            var sStatusHtml = oRow.status === 'online'
                 ? '<span style="color:#4CAF50;font-weight:bold;white-space:nowrap;"><i class="fa fa-circle"></i> ONLINE</span>'
                 : '<span style="color:#666;font-weight:bold;white-space:nowrap;"><i class="fa fa-circle-o"></i> OFFLINE</span>';
 
-            var hn = row.hostname || '';
-            var hostnameHtml = '<span class="hostname-display" data-mac="'+row.mac+'" title="Click to edit"'
-                +' style="cursor:pointer;border-bottom:1px dashed #666;">'
-                +(hn||'<em style="color:#555;">\u2014</em>')+'</span>';
+            var $hostname = $('<span class="hostname-display" title="Click to edit" style="cursor:pointer;border-bottom:1px dashed #666;">')
+                .attr('data-mac', sMac)
+                .text(sHostname);
+            if (!sHostname) {
+                $hostname.append($('<em style="color:#555;">').text('—'));
+            }
 
-            var ipHtml = row.ip
-                ? '<a href="http://'+row.ip+'" target="_blank" style="color:#5bc0de;">'+row.ip+'</a>'
-                : '';
+            var $ipCell = $('<td>').text(sIp);
+            if (/^\d{1,3}(\.\d{1,3}){3}$/.test(sIp)) {
+                $ipCell.empty().append($('<a target="_blank" rel="noopener noreferrer" style="color:#5bc0de;">')
+                    .attr('href', 'http://' + sIp)
+                    .text(sIp));
+            }
 
-            var vlanLabel = row.vlan||'';
-            if (row.vlan && vlanNames[row.vlan]) vlanLabel += ' \u2013 '+vlanNames[row.vlan];
+            var sVlanLabel = oRow.vlan || '';
+            if (oRow.vlan && vlanNames[oRow.vlan]) {
+                sVlanLabel += ' – ' + vlanNames[oRow.vlan];
+            }
+
+            var $check = $('<button class="btn btn-xs btn-warning command-check" title="Check online" style="margin-right:2px;"><i class="fa fa-plug"></i></button>')
+                .attr({'data-row-mac': sMac, 'data-row-ip': sIp});
+            var $delete = $('<button class="btn btn-xs btn-danger command-delete"><i class="fa fa-trash"></i></button>')
+                .attr('data-row-mac', sMac);
 
             $('<tr>').append(
-                $('<td>').text(row.mac||''),
-                $('<td>').html(ipHtml),
-                $('<td>').html(hostnameHtml),
-                $('<td>').text(row.vendor||''),
-                $('<td>').text(vlanLabel),
-                $('<td>').html(statusHtml),
-                $('<td>').text(row.last_seen||''),
-                $('<td>').html('<button class="btn btn-xs btn-warning command-check" data-row-mac="'+row.mac+'" data-row-ip="'+row.ip+'" title="Check online" style="margin-right:2px;"><i class="fa fa-plug"></i></button>' +
-                '<button class="btn btn-xs btn-danger command-delete" data-row-mac="'+row.mac+'"><i class="fa fa-trash"></i></button>')
+                $('<td>').text(sMac),
+                $ipCell,
+                $('<td>').append($hostname),
+                $('<td>').text(oRow.vendor || ''),
+                $('<td>').text(sVlanLabel),
+                $('<td>').html(sStatusHtml),
+                $('<td>').text(oRow.last_seen || ''),
+                $('<td>').append($check, $delete)
             ).appendTo($tbody);
         });
         bindButtons();
@@ -366,9 +382,8 @@ $(document).ready(function() {
         var $span=$(this);
         if ($span.find('input').length) return;
         var mac=$span.data('mac');
-        var cur=$span.text().trim();
-        if (cur==='\u2014') cur='';
-        var $inp=$('<input type="text" class="form-control input-sm">').val(cur).css({width:'150px',display:'inline-block'});
+        var sCurrentName=$span.children('em').length ? '' : $span.text().trim();
+        var $inp=$('<input type="text" class="form-control input-sm">').val(sCurrentName).css({width:'150px',display:'inline-block'});
         $span.html($inp);
         $inp.focus().select();
         function save(){

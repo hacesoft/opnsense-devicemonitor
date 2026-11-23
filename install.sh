@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Předpony: s = řetězec nebo cesta, i = číslo.
+# Historie: 2.3.1 – instalace katalogů do standardní cesty OPNsense (#7).
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Device Monitor - Instalace"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -17,33 +20,34 @@ echo "[1/9] Provádím kontroly..."
 }
 echo "  ✓ Root oprávnění OK"
 
-PLUGIN_VER=$(python3 -c "import json; print(json.load(open('src/opnsense/mvc/app/models/OPNsense/DeviceMonitor/defaults.json'))['version'])" 2>/dev/null || echo "?")
-echo "  ✓ Verze pluginu: Device Monitor v${PLUGIN_VER}"
-
-OPNSENSE_VER=$(opnsense-version 2>/dev/null | awk '{print $2}')
-if [ -n "$OPNSENSE_VER" ]; then
-    OPNSENSE_MAJOR=$(echo "$OPNSENSE_VER" | cut -d. -f1)
-    OPNSENSE_MINOR=$(echo "$OPNSENSE_VER" | cut -d. -f2)
-    OPNSENSE_PATCH=$(echo "$OPNSENSE_VER" | cut -d. -f3)
-    if [ "$OPNSENSE_MAJOR" -lt 26 ] || \
-       ( [ "$OPNSENSE_MAJOR" -eq 26 ] && [ "$OPNSENSE_MINOR" -lt 1 ] ) || \
-       ( [ "$OPNSENSE_MAJOR" -eq 26 ] && [ "$OPNSENSE_MINOR" -eq 1 ] && [ "${OPNSENSE_PATCH:-0}" -lt 5 ] ); then
-        echo "  ✗ CHYBA: Vyžadována OPNsense >= 26.1.5, nalezena $OPNSENSE_VER"
-        exit 1
-    fi
-    echo "  ✓ OPNsense $OPNSENSE_VER OK (minimum 26.1.5)"
-else
-    echo "  ⚠ Verzi OPNsense nelze zjistit, pokračuji..."
-fi
-
-SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-cd "$SCRIPT_DIR" || exit 1
+sScriptDir=$(dirname "$(readlink -f "$0")")
+cd "$sScriptDir" || exit 1
 
 [ ! -d "src" ] && {
     echo "  ✗ CHYBA: src/ adresář nenalezen!"
     exit 1
 }
 echo "  ✓ Zdrojové soubory nalezeny"
+
+sPluginVersion=$(python3 -c "import json; print(json.load(open('src/opnsense/mvc/app/models/OPNsense/DeviceMonitor/defaults.json'))['version'])" 2>/dev/null || echo "?")
+echo "  ✓ Verze pluginu: Device Monitor v${sPluginVersion}"
+
+sOpnsenseVersion=$(opnsense-version 2>/dev/null | awk '{print $2}')
+if [ -n "$sOpnsenseVersion" ]; then
+    iOpnsenseMajor=$(echo "$sOpnsenseVersion" | cut -d. -f1)
+    iOpnsenseMinor=$(echo "$sOpnsenseVersion" | cut -d. -f2)
+    sOpnsensePatch=$(echo "$sOpnsenseVersion" | cut -d. -f3)
+    iOpnsensePatch=${sOpnsensePatch%%[!0-9]*}
+    if [ "$iOpnsenseMajor" -lt 26 ] || \
+       ( [ "$iOpnsenseMajor" -eq 26 ] && [ "$iOpnsenseMinor" -lt 1 ] ) || \
+       ( [ "$iOpnsenseMajor" -eq 26 ] && [ "$iOpnsenseMinor" -eq 1 ] && [ "${iOpnsensePatch:-0}" -lt 5 ] ); then
+        echo "  ✗ CHYBA: Vyžadována OPNsense >= 26.1.5, nalezena $sOpnsenseVersion"
+        exit 1
+    fi
+    echo "  ✓ OPNsense $sOpnsenseVersion OK (minimum 26.1.5)"
+else
+    echo "  ⚠ Verzi OPNsense nelze zjistit, pokračuji..."
+fi
 
 if ! command -v msgfmt >/dev/null 2>&1; then
     echo "  → msgfmt nenalezen, instaluji gettext-tools..."
@@ -164,21 +168,18 @@ fi
 echo ""
 echo "[6/9] Instaluji překlady..."
 
-if [ -f "src/opnsense/mvc/app/languages/cs_CZ_devicemonitor.po" ]; then
-    if command -v msgfmt >/dev/null 2>&1; then
-        msgfmt -o /usr/local/opnsense/mvc/app/languages/cs_CZ_devicemonitor.mo \
-                  src/opnsense/mvc/app/languages/cs_CZ_devicemonitor.po \
-            && echo "  ✓ Překlad cs_CZ zkompilován" \
-            || echo "  ✗ CHYBA: Kompilace cs_CZ selhala"
-        msgfmt -o /usr/local/opnsense/mvc/app/languages/en_US_devicemonitor.mo \
-                  src/opnsense/mvc/app/languages/en_US_devicemonitor.po \
-            && echo "  ✓ Překlad en_US zkompilován" \
-            || echo "  ✗ CHYBA: Kompilace en_US selhala"
-    else
-        echo "  ⚠ msgfmt není dostupný - překlady nebudou fungovat"
-    fi
+if command -v msgfmt >/dev/null 2>&1; then
+    for sLocale in cs_CZ en_US; do
+        sSourceCatalog="src/opnsense/mvc/app/languages/${sLocale}_devicemonitor.po"
+        sLocaleDir="/usr/local/share/locale/$sLocale/LC_MESSAGES"
+        if mkdir -p "$sLocaleDir" && msgfmt --check -o "$sLocaleDir/devicemonitor.mo" "$sSourceCatalog"; then
+            echo "  ✓ Překlad $sLocale zkompilován"
+        else
+            echo "  ✗ CHYBA: Kompilace $sLocale selhala"
+        fi
+    done
 else
-    echo "  ⚠ Překladové soubory nenalezeny"
+    echo "  ⚠ msgfmt není dostupný – překlady nebudou fungovat"
 fi
 
 # ============================================
@@ -268,9 +269,9 @@ rm -f /var/run/devicemonitor.pid
 configctl devicemonitor start
 sleep 2
 
-PID=$(cat /var/run/devicemonitor.pid 2>/dev/null)
-if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-    echo "  ✓ Daemon běží (PID: $PID)"
+iDaemonPid=$(cat /var/run/devicemonitor.pid 2>/dev/null)
+if [ -n "$iDaemonPid" ] && kill -0 "$iDaemonPid" 2>/dev/null; then
+    echo "  ✓ Daemon běží (PID: $iDaemonPid)"
 else
     echo "  ⚠ VAROVÁNÍ: Daemon se nepodařilo spustit"
     echo "  → Spusť ručně: configctl devicemonitor start"
@@ -279,7 +280,7 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  ✓ Device Monitor v${PLUGIN_VER} úspěšně nainstalován!"
+echo "  ✓ Device Monitor v${sPluginVersion} úspěšně nainstalován!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 

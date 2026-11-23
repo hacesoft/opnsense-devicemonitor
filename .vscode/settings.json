@@ -1,6 +1,0 @@
-{
-  "intelephense.diagnostics.undefinedTypes": false,
-  "intelephense.diagnostics.undefinedProperties": false,
-  "intelephense.diagnostics.undefinedMethods": false,
-  "intelephense.diagnostics.deprecated": false
-}

@@ -1,16 +1,19 @@
 #!/bin/sh
 
+# Předpona b označuje příznak 0/1.
+# Historie: 2.3.1 – odstranění vlastních katalogů z adresáře locale.
+
 # Device Monitor - Uninstall Script
 # Podporuje tichý režim pro reinstalaci: ./uninstall.sh --silent
 
-SILENT_MODE=0
+bSilentMode=0
 
 # Kontrola parametru --silent
 if [ "$1" = "--silent" ]; then
-    SILENT_MODE=1
+    bSilentMode=1
 fi
 
-if [ "$SILENT_MODE" -eq 0 ]; then
+if [ "$bSilentMode" -eq 0 ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  Device Monitor - Odinstalace"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -97,13 +100,15 @@ rm -f /usr/local/opnsense/mvc/app/languages/cs_CZ_devicemonitor.po
 rm -f /usr/local/opnsense/mvc/app/languages/cs_CZ_devicemonitor.mo
 rm -f /usr/local/opnsense/mvc/app/languages/en_US_devicemonitor.po
 rm -f /usr/local/opnsense/mvc/app/languages/en_US_devicemonitor.mo
+rm -f /usr/local/share/locale/cs_CZ/LC_MESSAGES/devicemonitor.mo
+rm -f /usr/local/share/locale/en_US/LC_MESSAGES/devicemonitor.mo
 echo "  ✓ Překlady odstraněny"
 
 # ============================================
 # 6. DATABÁZE A DATA
 # ============================================
 
-if [ "$SILENT_MODE" -eq 1 ]; then
+if [ "$bSilentMode" -eq 1 ]; then
     # Tichý režim (reinstalace) - NEMAZAT DATA!
     echo "[6/6] Ponechávám databázi (reinstalace)..."
     echo "  → /var/db/devicemonitor/devices.db"
@@ -123,7 +128,7 @@ fi
 # VYČISTĚNÍ CACHE
 # ============================================
 
-if [ "$SILENT_MODE" -eq 0 ]; then
+if [ "$bSilentMode" -eq 0 ]; then
     echo ""
     echo "Čistím cache..."
 fi
@@ -136,7 +141,7 @@ rm -rf /var/cache/opnsense/templates/* 2>/dev/null || true
 # RESTART SLUŽEB (pouze při normální odinstalaci)
 # ============================================
 
-if [ "$SILENT_MODE" -eq 0 ]; then
+if [ "$bSilentMode" -eq 0 ]; then
     echo ""
     echo "Aktualizuji menu a restartuji služby..."
     
