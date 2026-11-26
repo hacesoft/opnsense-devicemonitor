@@ -8,7 +8,7 @@ Device Monitor je plugin pro OPNsense, který sleduje síťová zařízení pomo
 
 - Seznam známých zařízení s MAC a IP adresou, výrobcem, názvem a časem první a poslední detekce.
 - Načítání názvů z rezervací DHCP, ruční pojmenování zařízení a filtrování upozornění podle VLAN.
-- E-mail přes místní Sendmail/Postfix nebo přímé SMTP. Webhooky pro ntfy.sh, Discord a obecné HTTP cíle.
+- E-mail přes přímé SMTP. Podporované zůstávají i stávající konfigurace místního Sendmailu/Postfixu. Webhooky pro ntfy.sh, Discord a obecné HTTP cíle.
 - Widget v OPNsense Lobby s počtem zařízení a stavem služby. Ovládání služby ve webovém rozhraní.
 
 ## Instalace
@@ -21,6 +21,7 @@ Vyžaduje **OPNsense 26.1.5 nebo novější**. Postupuj podle [návodu k instala
 - [Nastavení a použití](doc/cz/02_NASTAVENI_A_POUZITI.md)
 - [Řešení problémů](doc/cz/03_RESENI_PROBLEMU.md)
 - [Technická dokumentace](doc/cz/04_TECHNICKA_DOKUMENTACE.md)
+- [Integrační testy OPNsense](doc/cz/05_TESTY_OPNSENSE.md)
 - [Historie verzí](doc/cz/HISTORIE_VERZI.md)
 
 ## Projekt

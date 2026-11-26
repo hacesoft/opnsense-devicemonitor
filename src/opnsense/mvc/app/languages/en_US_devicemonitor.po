@@ -1,3 +1,5 @@
+# Historie: 2.3.6 – popisky pasivních statistik PF.
+# Historie: 2.3.3 – volba webhooku a popisky Hostwatch (#8, #10).
 # Device Monitor Plugin - Translations en_US
 # Copyright (C) 2026 Hacesoft
 #
@@ -7,7 +9,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Device Monitor 2.3.1\n"
+"Project-Id-Version: Device Monitor 2.4.16\n"
 "POT-Creation-Date: 2026-04-10 00:00+0000\n"
 "PO-Revision-Date: 2026-04-10 00:00+0000\n"
 "Last-Translator: Hacesoft\n"
@@ -407,3 +409,247 @@ msgstr "Invalid webhook URL"
 #: ConfigController.php
 msgid "Scan interval must be between 60 and 3600 seconds"
 msgstr "Scan interval must be between 60 and 3600 seconds"
+
+msgid "Webhook type"
+msgstr "Webhook type"
+
+msgid "Automatic"
+msgstr "Automatic"
+
+msgid "Generic JSON"
+msgstr "Generic JSON"
+
+msgid "Invalid webhook type"
+msgstr "Invalid webhook type"
+
+msgid "Hostwatch Refresh Interval"
+msgstr "Hostwatch Refresh Interval"
+
+msgid "Seconds between Hostwatch refreshes (60–3600)"
+msgstr "Seconds between Hostwatch refreshes (60–3600)"
+
+msgid "Hostwatch status"
+msgstr "Hostwatch status"
+
+msgid "Seen in the last 15 minutes"
+msgstr "Seen in the last 15 minutes"
+
+msgid "Not seen in the last 15 minutes"
+msgstr "Not seen in the last 15 minutes"
+
+msgid "Manual ping"
+msgstr "Manual ping"
+
+msgid "Run manual ping"
+msgstr "Run manual ping"
+
+msgid "Ping reply"
+msgstr "Ping reply"
+
+msgid "No ping reply"
+msgstr "No ping reply"
+
+msgid "Ping failed"
+msgstr "Ping failed"
+
+msgid "Recent firewall traffic"
+msgstr "Recent firewall traffic"
+
+msgid "Show recent traffic using existing firewall statistics. No probes are sent."
+msgstr "Show recent traffic using existing firewall statistics. No probes are sent."
+
+msgid "Traffic observed"
+msgstr "Traffic observed"
+
+msgid "No current firewall statistics. Check the Device Monitor service and Firewall Sessions permissions."
+msgstr "No current firewall statistics. Check the Device Monitor service and Firewall Sessions permissions."
+
+# 2.4.0 – sloupce a známá zařízení
+msgid "Columns"
+msgstr "Columns"
+
+msgid "Show all columns"
+msgstr "Show all columns"
+
+msgid "All devices"
+msgstr "All devices"
+
+msgid "Known device"
+msgstr "Known device"
+
+msgid "Known devices"
+msgstr "Known devices"
+
+msgid "Unmarked devices"
+msgstr "Unmarked devices"
+
+msgid "Mark as known"
+msgstr "Mark as known"
+
+msgid "Remove known mark"
+msgstr "Remove known mark"
+
+msgid "Could not save the device mark"
+msgstr "Could not save the device mark"
+
+msgid "Observed packets: %s"
+msgstr "Observed packets: %s"
+
+msgid "No traffic observed in the last 15 minutes"
+msgstr "No traffic observed in the last 15 minutes"
+
+msgid "No change in counters"
+msgstr "No change in counters"
+
+msgid "Counter decreased"
+msgstr "Counter decreased"
+
+msgid "Waiting for another reading"
+msgstr "Waiting for another reading"
+
+msgid "No matching PF states"
+msgstr "No matching PF states"
+
+msgid "Latest PF reading unavailable"
+msgstr "Latest PF reading unavailable"
+
+msgid "PF reading"
+msgstr "PF reading"
+
+msgid "Next 15-minute traffic review in"
+msgstr "Next 15-minute traffic review in"
+
+msgid "Devices with traffic at last review: %s"
+msgstr "Devices with traffic at last review: %s"
+
+msgid "Device activity"
+msgstr "Device activity"
+
+msgid "Hostwatch"
+msgstr "Hostwatch"
+
+msgid "Firewall (IP counters)"
+msgstr "Firewall (IP counters)"
+
+msgid "Wait after the last discovery (seconds)"
+msgstr "Wait after the last discovery (seconds)"
+
+msgid "Maximum wait from the first discovery (seconds)"
+msgstr "Maximum wait from the first discovery (seconds)"
+
+msgid "Each discovery restarts the wait. Without a maximum, a continuous series can delay email indefinitely. A wait of 0 sends each group immediately."
+msgstr "Each discovery restarts the wait. Without a maximum, a continuous series can delay email indefinitely. A wait of 0 sends each group immediately."
+
+msgid "Use whole seconds. Wait can be 0–3600 seconds. When enabled, the maximum must be 1–3600 seconds and at least as long as the wait."
+msgstr "Use whole seconds. Wait can be 0–3600 seconds. When enabled, the maximum must be 1–3600 seconds and at least as long as the wait."
+
+msgid "Email batching mode"
+msgstr "Email batching mode"
+
+msgid "Wait for a pause, with a maximum"
+msgstr "Wait for a pause, with a maximum"
+
+msgid "Wait for a pause, without a maximum"
+msgstr "Wait for a pause, without a maximum"
+
+msgid "Invalid email batching mode"
+msgstr "Invalid email batching mode"
+
+msgid "Show setting help"
+msgstr "Show setting help"
+
+msgid "Apply saves the settings from all tabs."
+msgstr "Apply saves the settings from all tabs."
+
+msgid "Send email when Device Monitor discovers new devices on the selected interfaces. Email is off on a fresh installation."
+msgstr "Send email when Device Monitor discovers new devices on the selected interfaces. Email is off on a fresh installation."
+
+msgid "Enter one email address to receive device alerts and test messages."
+msgstr "Enter one email address to receive device alerts and test messages."
+
+msgid "Enter one sender address permitted by your mail server."
+msgstr "Enter one sender address permitted by your mail server."
+
+msgid "Direct SMTP connects to your mail server. Local Sendmail / Postfix uses the configured mailer on OPNsense."
+msgstr "Direct SMTP connects to your mail server. Local Sendmail / Postfix uses the configured mailer on OPNsense."
+
+msgid "With a maximum, a long series can produce several summaries. Without a maximum, a continuous series can keep delaying the email."
+msgstr "With a maximum, a long series can produce several summaries. Without a maximum, a continuous series can keep delaying the email."
+
+msgid "Each new discovery restarts the wait. Enter 0–3600 seconds. Default: 15. A value of 0 sends the group from one Hostwatch refresh immediately."
+msgstr "Each new discovery restarts the wait. Enter 0–3600 seconds. Default: 15. A value of 0 sends the group from one Hostwatch refresh immediately."
+
+msgid "Enter 1–3600 seconds from the first discovery. Default: 45. The maximum must be at least as long as the wait."
+msgstr "Enter 1–3600 seconds from the first discovery. Default: 45. The maximum must be at least as long as the wait."
+
+msgid "Enter the SMTP hostname or IP address, for example smtp.example.com."
+msgstr "Enter the SMTP hostname or IP address, for example smtp.example.com."
+
+msgid "Use the port required by your provider. Common ports are 587 for STARTTLS and 465 for SSL/TLS."
+msgstr "Use the port required by your provider. Common ports are 587 for STARTTLS and 465 for SSL/TLS."
+
+msgid "Match the server settings. STARTTLS upgrades an existing connection, SSL/TLS encrypts from the start, and None leaves it unencrypted."
+msgstr "Match the server settings. STARTTLS upgrades an existing connection, SSL/TLS encrypts from the start, and None leaves it unencrypted."
+
+msgid "Enter the login required by your SMTP provider. Leave it blank if the server accepts mail without authentication."
+msgstr "Enter the login required by your SMTP provider. Leave it blank if the server accepts mail without authentication."
+
+msgid "Enter a new SMTP or app password to replace the saved password. Leave the field blank to keep the saved password."
+msgstr "Enter a new SMTP or app password to replace the saved password. Leave the field blank to keep the saved password."
+
+msgid "Saves the current settings and sends one test email immediately, without waiting for a batch."
+msgstr "Saves the current settings and sends one test email immediately, without waiting for a batch."
+
+msgid "Select which interfaces can trigger this notification. An empty selection includes all interfaces."
+msgstr "Select which interfaces can trigger this notification. An empty selection includes all interfaces."
+
+msgid "Send a webhook when Device Monitor discovers new devices on the selected interfaces. Webhooks are off on a fresh installation."
+msgstr "Send a webhook when Device Monitor discovers new devices on the selected interfaces. Webhooks are off on a fresh installation."
+
+msgid "Automatic chooses a format from the URL. For ntfy on a custom server, select ntfy explicitly. Use Generic JSON for your own JSON endpoint."
+msgstr "Automatic chooses a format from the URL. For ntfy on a custom server, select ntfy explicitly. Use Generic JSON for your own JSON endpoint."
+
+msgid "Enter the full HTTP or HTTPS URL, including the ntfy topic when applicable. HTTPS requires a trusted certificate. Leave blank to keep the saved URL."
+msgstr "Enter the full HTTP or HTTPS URL, including the ntfy topic when applicable. HTTPS requires a trusted certificate. Leave blank to keep the saved URL."
+
+msgid "Sends a test using the entered URL or the saved URL, and the current format. The test does not save settings."
+msgstr "Sends a test using the entered URL or the saved URL, and the current format. The test does not save settings."
+
+msgid "Periodically reads new devices from the Hostwatch database. Enable this for automatic discovery and notifications."
+msgstr "Periodically reads new devices from the Hostwatch database. Enable this for automatic discovery and notifications."
+
+msgid "Enter 60–3600 seconds between Hostwatch refreshes. Default: 300. This interval affects when the plugin first sees a new device."
+msgstr "Enter 60–3600 seconds between Hostwatch refreshes. Default: 300. This interval affects when the plugin first sees a new device."
+
+msgid "Read existing firewall counters to supplement Hostwatch activity. Off by default. Traffic within a single network segment can bypass the firewall."
+msgstr "Read existing firewall counters to supplement Hostwatch activity. Off by default. Traffic within a single network segment can bypass the firewall."
+
+msgid "Find the user guides in the project repository. The required OPNsense version is shown below."
+msgstr "Find the user guides in the project repository. The required OPNsense version is shown below."
+
+msgid "Saved on OPNsense"
+msgstr "Saved on OPNsense"
+
+msgid "Remove saved SMTP password"
+msgstr "Remove saved SMTP password"
+
+msgid "Remove saved webhook URL"
+msgstr "Remove saved webhook URL"
+
+msgid "Enter a webhook URL first."
+msgstr "Enter a webhook URL first."
+
+msgid "Webhook URL must use HTTP or HTTPS"
+msgstr "Webhook URL must use HTTP or HTTPS"
+
+msgid "Invalid configuration field type"
+msgstr "Invalid configuration field type"
+
+msgid "Invalid configuration switch value"
+msgstr "Invalid configuration switch value"
+
+msgid "SMTP server must be a hostname or IP address"
+msgstr "SMTP server must be a hostname or IP address"
+
+msgid "Invalid interface list"
+msgstr "Invalid interface list"

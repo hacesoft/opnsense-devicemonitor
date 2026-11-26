@@ -2,6 +2,7 @@
 
 # Předpona b označuje příznak 0/1.
 # Historie:
+# 2.3.7 – kontrola typových předpon při sjednocení pluginu.
 # 2.3.1 – odstranění vlastních katalogů z adresáře locale.
 # 2.3.2 – anglický výpis i při volání z instalátoru.
 
@@ -83,6 +84,9 @@ rm -rf /usr/local/opnsense/scripts/OPNsense/DeviceMonitor
 
 # Akce configd
 rm -f /usr/local/opnsense/service/conf/actions.d/actions_devicemonitor.conf
+
+# Pravidlo rotace logu.
+rm -f /usr/local/etc/newsyslog.conf.d/devicemonitor.conf
 
 # Dočasná konfigurace
 rm -f /tmp/devicemonitor_config.json

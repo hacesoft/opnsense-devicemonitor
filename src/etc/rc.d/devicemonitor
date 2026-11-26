@@ -3,6 +3,8 @@
 # REQUIRE: LOGIN DAEMON NETWORKING
 # KEYWORD: shutdown
 
+# 2.3.7 – kontrola proměnných. Jejich názvy určuje rozhraní FreeBSD rc.subr.
+
 . /etc/rc.subr
 
 name="devicemonitor"

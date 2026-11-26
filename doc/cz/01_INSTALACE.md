@@ -14,21 +14,21 @@
 
 ### Instalace z Windows přes WinSCP a SSH
 
-1. Stáhni instalační ZIP Device Monitor 2.3.2.
+1. Stáhni instalační ZIP Device Monitor 2.4.16.
 2. Pokud SSH ještě nepoužíváš, povol ho v **System → Settings → Administration → Secure Shell**.
 3. Nahraj ZIP přes WinSCP do `/tmp/` na OPNsense.
 4. Připoj se přes SSH, přepni se na účet s oprávněním root a spusť:
 
 ```sh
 cd /tmp
-unzip opnsense-devicemonitor-2.3.2.zip
+unzip opnsense-devicemonitor-2.4.16.zip
 cd opnsense-devicemonitor
 sh install.sh
 ```
 
 ### Stažení verze 2.3 přímo přes SSH
 
-Odkaz v příkazu níže vede na dříve zveřejněnou verzi 2.3. Pro verzi 2.3.2 použij ZIP z předchozího postupu. Na OPNsense spusť jako root:
+Odkaz v příkazu níže vede na dříve zveřejněnou verzi 2.3. Pro verzi 2.4.16 použij ZIP z předchozího postupu. Na OPNsense spusť jako root:
 
 ```sh
 cd /tmp

@@ -1,6 +1,16 @@
 <?php
+
+// Předpony: arr = pole, b = příznak, i = celé číslo, o = objekt, r = zdroj, s = řetězec.
+// Historie: 2.4.16 – délkový limit adresy webhooku.
+// 2.4.15 – omezené dávky pro oba kanály.
+// 2.4.14 – omezení webhooků na HTTP(S) a ověřování TLS.
+// 2.4.1 – výchozí transport pro novou instalaci je Direct SMTP.
+// 2.3.7 – sjednocení typových předpon proměnných.
 /**
  * Shared notification handler
+ * Historie: 2.4.11 – e-mail přijímá konkrétní dávku z fronty.
+ * Předpony v sendWebhook: arr = pole, b = příznak, i = číslo, o = objekt, s = řetězec.
+ * Historie: 2.3.3 – volitelný formát webhooku nezávislý na doméně (#8).
  * Path: /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/NotificationHandler.php
  */
 
@@ -9,38 +19,62 @@ require_once('/usr/local/opnsense/mvc/app/models/OPNsense/DeviceMonitor/DeviceMo
 
 class NotificationHandler
 {
-    private $log_file = '/var/log/devicemonitor.log';
+    public const WEBHOOK_TYPES = ['auto', 'ntfy', 'discord', 'generic'];
+
+    private const I_MAX_BATCH_BYTES = 4 * 1024 * 1024;
+    private const I_MAX_BATCH_ROWS = 100;
+    private $sLogFile = '/var/log/devicemonitor.log';
     
-    public function fLog($message, $context = 'NOTIFICATION') {
-        $timestamp = date('Y-m-d H:i:s');
-        file_put_contents($this->log_file, "[{$timestamp}] [PHP-{$context}] {$message}\n", FILE_APPEND);
+    public function fLog($sLogMessage, $sContext = 'NOTIFICATION') {
+        $sTimestamp = date('Y-m-d H:i:s');
+        file_put_contents($this->sLogFile, "[{$sTimestamp}] [PHP-{$sContext}] {$sLogMessage}\n", FILE_APPEND);
     }
 
     
+    /** Načte omezenou dávku prostřednictvím stdin. Při neplatném vstupu vrátí null. */
+    public static function readNotificationBatch(): ?array
+    {
+        $sJson = stream_get_contents(STDIN, self::I_MAX_BATCH_BYTES + 1);
+        if ($sJson === false || strlen($sJson) > self::I_MAX_BATCH_BYTES) {
+            return null;
+        }
+        $arrDevices = json_decode($sJson, true);
+        if (!is_array($arrDevices) || !array_is_list($arrDevices) || !$arrDevices
+            || count($arrDevices) > self::I_MAX_BATCH_ROWS) {
+            return null;
+        }
+        foreach ($arrDevices as $arrDevice) {
+            if (!is_array($arrDevice) || !is_string($arrDevice['mac'] ?? null)) {
+                return null;
+            }
+        }
+        return $arrDevices;
+    }
+
     /**
      * Načte zařízení z databáze s notification_pending = 1
      */
     private function loadDevicesFromDb()
     {
-        $db_file = \OPNsense\DeviceMonitor\DeviceMonitor::getPath('dbFile');
+        $sDatabasePath = \OPNsense\DeviceMonitor\DeviceMonitor::getPath('dbFile');
         
-        if (!file_exists($db_file)) {
+        if (!file_exists($sDatabasePath)) {
             return null;
         }
         
         try {
-            $db = new \SQLite3($db_file, SQLITE3_OPEN_READONLY);
-            $result = $db->query("SELECT * FROM devices WHERE notification_pending = 1 ORDER BY first_seen DESC");
+            $oDatabase = new \SQLite3($sDatabasePath, SQLITE3_OPEN_READONLY);
+            $oQueryResult = $oDatabase->query("SELECT * FROM devices WHERE notification_pending = 1 ORDER BY first_seen DESC LIMIT " . self::I_MAX_BATCH_ROWS);
             
-            $devices = [];
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                $devices[] = $row;
+            $arrEmailDevices = [];
+            while ($arrRow = $oQueryResult->fetchArray(SQLITE3_ASSOC)) {
+                $arrEmailDevices[] = $arrRow;
             }
             
-            $db->close();
-            return $devices;
+            $oDatabase->close();
+            return $arrEmailDevices;
             
-        } catch (\Exception $e) {
+        } catch (\Exception $oEmailException) {
             return null;
         }
     }
@@ -52,132 +86,132 @@ class NotificationHandler
      * Odešle zprávu přes interní Direct SMTP helper (Python stdlib smtplib).
      * SMTP heslo není předáváno v command line; helper si načte config.json.
      */
-    private function sendViaDirectSmtp($subject, $html)
+    private function sendViaDirectSmtp($sSubject, $sHtml)
     {
-        $helper = '/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/smtp_send.py';
-        if (!file_exists($helper)) {
+        $sHelperPath = '/usr/local/opnsense/scripts/OPNsense/DeviceMonitor/smtp_send.py';
+        if (!file_exists($sHelperPath)) {
             return ['result' => 'failed', 'message' => 'Direct SMTP helper not found'];
         }
 
-        $plain = html_entity_decode(strip_tags(
-            str_replace(['<br>', '<br/>', '<br />', '</p>', '</tr>'], ["\n", "\n", "\n", "\n", "\n"], $html)
+        $sPlain = html_entity_decode(strip_tags(
+            str_replace(['<br>', '<br/>', '<br />', '</p>', '</tr>'], ["\n", "\n", "\n", "\n", "\n"], $sHtml)
         ), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $plain = preg_replace('/[ \t]+/', ' ', $plain);
-        $plain = preg_replace('/\n{3,}/', "\n\n", $plain);
-        $plain = trim($plain);
+        $sPlain = preg_replace('/[ \t]+/', ' ', $sPlain);
+        $sPlain = preg_replace('/\n{3,}/', "\n\n", $sPlain);
+        $sPlain = trim($sPlain);
 
-        $payload = json_encode([
-            'subject' => $subject,
-            'html' => $html,
-            'text' => $plain,
+        $sPayload = json_encode([
+            'subject' => $sSubject,
+            'html' => $sHtml,
+            'text' => $sPlain,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        if ($payload === false) {
+        if ($sPayload === false) {
             return ['result' => 'failed', 'message' => 'Cannot encode email payload'];
         }
 
-        $proc = proc_open('/usr/local/bin/python3 ' . escapeshellarg($helper), [
+        $rProcess = proc_open('/usr/local/bin/python3 ' . escapeshellarg($sHelperPath), [
             0 => ['pipe', 'r'],
             1 => ['pipe', 'w'],
             2 => ['pipe', 'w'],
-        ], $pipes);
+        ], $arrPipes);
 
-        if (!is_resource($proc)) {
+        if (!is_resource($rProcess)) {
             return ['result' => 'failed', 'message' => 'Cannot start Direct SMTP helper'];
         }
 
-        fwrite($pipes[0], $payload);
-        fclose($pipes[0]);
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $ret = proc_close($proc);
+        fwrite($arrPipes[0], $sPayload);
+        fclose($arrPipes[0]);
+        $sStdout = stream_get_contents($arrPipes[1]);
+        $sStderr = stream_get_contents($arrPipes[2]);
+        fclose($arrPipes[1]);
+        fclose($arrPipes[2]);
+        $iExitCode = proc_close($rProcess);
 
-        $response = json_decode(trim($stdout), true);
-        if ($ret === 0 && is_array($response) && ($response['result'] ?? '') === 'sent') {
-            return $response;
+        $arrResponse = json_decode(trim($sStdout), true);
+        if ($iExitCode === 0 && is_array($arrResponse) && ($arrResponse['result'] ?? '') === 'sent') {
+            return $arrResponse;
         }
 
-        $detail = is_array($response) ? ($response['message'] ?? '') : '';
-        if ($detail === '') {
-            $detail = trim($stderr) !== '' ? trim($stderr) : (trim($stdout) !== '' ? trim($stdout) : "Exit code: {$ret}");
+        $sDetail = is_array($arrResponse) ? ($arrResponse['message'] ?? '') : '';
+        if ($sDetail === '') {
+            $sDetail = trim($sStderr) !== '' ? trim($sStderr) : (trim($sStdout) !== '' ? trim($sStdout) : "Exit code: {$iExitCode}");
         }
-        return ['result' => 'failed', 'message' => 'Direct SMTP error: ' . $detail];
+        return ['result' => 'failed', 'message' => 'Direct SMTP error: ' . $sDetail];
     }
 
     /**
      * Původní transport přes lokální /usr/local/sbin/sendmail (typicky os-postfix).
      */
-    private function sendViaSendmail($email_to, $email_from, $subject, $html)
+    private function sendViaSendmail($sEmailTo, $sEmailFrom, $sSubject, $sHtml)
     {
-        $sendmail = '/usr/local/sbin/sendmail';
-        if (!is_executable($sendmail)) {
+        $sSendmailPath = '/usr/local/sbin/sendmail';
+        if (!is_executable($sSendmailPath)) {
             return [
                 'result' => 'failed',
                 'message' => 'Sendmail is not available. Install/configure a local mailer or select Direct SMTP.'
             ];
         }
 
-        $message = "From: $email_from\r\n";
-        $message .= "To: $email_to\r\n";
-        $message .= "Subject: $subject\r\n";
-        $message .= "MIME-Version: 1.0\r\n";
-        $message .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $message .= "\r\n$html";
+        $sLogMessage = "From: $sEmailFrom\r\n";
+        $sLogMessage .= "To: $sEmailTo\r\n";
+        $sLogMessage .= "Subject: $sSubject\r\n";
+        $sLogMessage .= "MIME-Version: 1.0\r\n";
+        $sLogMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $sLogMessage .= "\r\n$sHtml";
 
-        $proc = proc_open($sendmail . ' -t -i', [
+        $rProcess = proc_open($sSendmailPath . ' -t -i', [
             0 => ['pipe', 'r'],
             1 => ['pipe', 'w'],
             2 => ['pipe', 'w'],
-        ], $pipes);
+        ], $arrPipes);
 
-        if (!is_resource($proc)) {
+        if (!is_resource($rProcess)) {
             return ['result' => 'failed', 'message' => 'Cannot start sendmail'];
         }
 
-        fwrite($pipes[0], $message);
-        fclose($pipes[0]);
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $ret = proc_close($proc);
+        fwrite($arrPipes[0], $sLogMessage);
+        fclose($arrPipes[0]);
+        $sStdout = stream_get_contents($arrPipes[1]);
+        $sStderr = stream_get_contents($arrPipes[2]);
+        fclose($arrPipes[1]);
+        fclose($arrPipes[2]);
+        $iExitCode = proc_close($rProcess);
 
-        if ($ret === 0) {
+        if ($iExitCode === 0) {
             return ['result' => 'sent', 'message' => 'Email sent', 'transport' => 'sendmail'];
         }
 
-        $detail = trim($stderr) !== '' ? trim($stderr) : (trim($stdout) !== '' ? trim($stdout) : "Exit code: {$ret}");
-        return ['result' => 'failed', 'message' => 'Sendmail error: ' . $detail, 'exit_code' => $ret];
+        $sDetail = trim($sStderr) !== '' ? trim($sStderr) : (trim($sStdout) !== '' ? trim($sStdout) : "Exit code: {$iExitCode}");
+        return ['result' => 'failed', 'message' => 'Sendmail error: ' . $sDetail, 'exit_code' => $iExitCode];
     }
 
     /**
      * UNIVERZÁLNÍ EMAIL - test i real - S INLINE STYLES!
      */
-    public function sendEmail($is_test = false)
+    public function sendEmail($bEmailTest = false, ?array $arrQueuedDevices = null)
     {
         //$this->fLog("=== sendEmail START === Mode: " . ($is_test ? 'TEST' : 'REAL'), 'EMAIL');
         
-        $model = new \OPNsense\DeviceMonitor\DeviceMonitor();
-        $config = $model->getConfig();
+        $oModel = new \OPNsense\DeviceMonitor\DeviceMonitor();
+        $arrEmailConfig = $oModel->getConfig();
         
         // Check enabled
-        if ($config['email_enabled'] != '1' || empty($config['email_to'])) {
+        if ($arrEmailConfig['email_enabled'] != '1' || empty($arrEmailConfig['email_to'])) {
             $this->fLog("Email disabled in config", 'EMAIL');
             return ['result' => 'skipped', 'message' => 'Email disabled'];
         }
         
-        $email_to = $config['email_to'];
-        $email_from = $config['email_from'] ?? 'devicemonitor@opnsense.local';
+        $sEmailTo = $arrEmailConfig['email_to'];
+        $sEmailFrom = $arrEmailConfig['email_from'] ?? 'devicemonitor@opnsense.local';
         
-        if ($is_test) {
+        if ($bEmailTest) {
             // === TEST MODE ===
-            $subject = 'Test - OPNsense Device Monitor';
-            $hostname = gethostname();
-            $timestamp = date('Y-m-d H:i:s');
+            $sSubject = 'Test - OPNsense Device Monitor';
+            $sRouterHostname = gethostname();
+            $sTimestamp = date('Y-m-d H:i:s');
             
-            $html = <<<HTML
+            $sHtml = <<<HTML
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; background-color: #f5f7fa; margin: 0; padding: 20px;">
@@ -191,15 +225,15 @@ class NotificationHandler
             <table style="width: 100%; margin: 20px 0;">
                 <tr>
                     <td style="padding: 8px 0; color: #6c757d; font-weight: 600;">Server:</td>
-                    <td style="padding: 8px 0; font-family: monospace; color: #2d3748;">$hostname</td>
+                    <td style="padding: 8px 0; font-family: monospace; color: #2d3748;">$sRouterHostname</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px 0; color: #6c757d; font-weight: 600;">Time:</td>
-                    <td style="padding: 8px 0; font-family: monospace; color: #2d3748;">$timestamp</td>
+                    <td style="padding: 8px 0; font-family: monospace; color: #2d3748;">$sTimestamp</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px 0; color: #6c757d; font-weight: 600;">To:</td>
-                    <td style="padding: 8px 0; font-family: monospace; color: #2d3748;">$email_to</td>
+                    <td style="padding: 8px 0; font-family: monospace; color: #2d3748;">$sEmailTo</td>
                 </tr>
             </table>
         </div>
@@ -210,27 +244,27 @@ HTML;
             
         } else {
             // === REAL MODE - načti z DB ===
-            $devices = $this->loadDevicesFromDb();
+            $arrEmailDevices = $arrQueuedDevices ?? $this->loadDevicesFromDb();
             
-            if ($devices === null) {
+            if ($arrEmailDevices === null) {
                 $this->fLog("FAILED: Cannot load devices from database", 'EMAIL');
                 return ['result' => 'failed', 'message' => 'Cannot load devices'];
             }
             
-            if (empty($devices)) {
+            if (empty($arrEmailDevices)) {
                 $this->fLog("SKIPPED: No pending notifications", 'EMAIL');
                 return ['result' => 'skipped', 'message' => 'No pending notifications'];
             }
             
-            $count = count($devices);
-            $subject = "OPNsense: {$count} new device(s) detected";
-            $hostname = gethostname();
-            $timestamp = date('Y-m-d H:i:s');
+            $iDeviceCount = count($arrEmailDevices);
+            $sSubject = "OPNsense: {$iDeviceCount} new device(s) detected";
+            $sRouterHostname = gethostname();
+            $sTimestamp = date('Y-m-d H:i:s');
             
-            $this->fLog("Preparing email for {$count} devices", 'EMAIL');
+            $this->fLog("Preparing email for {$iDeviceCount} devices", 'EMAIL');
             
             // === INLINE STYLES EMAIL ===
-            $html = <<<HTML
+            $sHtml = <<<HTML
 <!DOCTYPE html>
 <html>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #f5f7fa; margin: 0; padding: 20px; color: #2d3748;">
@@ -244,7 +278,7 @@ HTML;
         
         <!-- Summary -->
         <div style="background: #fff3e0; border-left: 4px solid #f6821f; padding: 20px; margin: 20px; border-radius: 8px;">
-            <strong style="color: #e65100; font-size: 20px;">{$count} new device(s)</strong> detected and require your attention
+            <strong style="color: #e65100; font-size: 20px;">{$iDeviceCount} new device(s)</strong> detected and require your attention
         </div>
         
         <!-- Content -->
@@ -252,11 +286,11 @@ HTML;
             <!-- Info Boxes -->
             <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                 <span style="font-weight: 600; color: #6c757d;">📡 Server:</span>
-                <span style="font-family: 'Courier New', monospace; background: white; padding: 5px 12px; border-radius: 4px; border: 1px solid #dee2e6; margin-left: 10px;">{$hostname}</span>
+                <span style="font-family: 'Courier New', monospace; background: white; padding: 5px 12px; border-radius: 4px; border: 1px solid #dee2e6; margin-left: 10px;">{$sRouterHostname}</span>
             </div>
             <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
                 <span style="font-weight: 600; color: #6c757d;">⏰ Detection Time:</span>
-                <span style="font-family: 'Courier New', monospace; background: white; padding: 5px 12px; border-radius: 4px; border: 1px solid #dee2e6; margin-left: 10px;">{$timestamp}</span>
+                <span style="font-family: 'Courier New', monospace; background: white; padding: 5px 12px; border-radius: 4px; border: 1px solid #dee2e6; margin-left: 10px;">{$sTimestamp}</span>
             </div>
             
             <h3 style="margin-top: 30px; color: #2c3e50;">🖥️ Detected Devices</h3>
@@ -276,31 +310,31 @@ HTML;
                 <tbody>
 HTML;
             
-            foreach ($devices as $d) {
-                $mac = htmlspecialchars($d['mac']);
-                $vendor = htmlspecialchars($d['vendor']);
-                $ip = htmlspecialchars($d['ip'] ?? 'No IP');
-                $hostname_val = htmlspecialchars($d['hostname'] ?? 'Unknown');
-                $vlan = htmlspecialchars($d['vlan'] ?? '-');
-                $first_seen = htmlspecialchars($d['first_seen']);
+            foreach ($arrEmailDevices as $arrNotificationDevice) {
+                $sMac = htmlspecialchars($arrNotificationDevice['mac']);
+                $sVendor = htmlspecialchars($arrNotificationDevice['vendor'] ?? 'Unknown');
+                $sIp = htmlspecialchars($arrNotificationDevice['ip'] ?? 'No IP');
+                $sDeviceHostname = htmlspecialchars($arrNotificationDevice['hostname'] ?? 'Unknown');
+                $sVlan = htmlspecialchars($arrNotificationDevice['vlan'] ?? '-');
+                $sFirstSeen = htmlspecialchars($arrNotificationDevice['first_seen'] ?? '');
                 
-                $html .= <<<ROW
+                $sHtml .= <<<ROW
                     <tr>
                         <td style="padding: 12px; border-bottom: 1px solid #e9ecef;">
-                            <span style="font-family: 'Courier New', monospace; background: #e3f2fd; padding: 4px 8px; border-radius: 4px; color: #1976d2; font-weight: 600;">{$mac}</span>
+                            <span style="font-family: 'Courier New', monospace; background: #e3f2fd; padding: 4px 8px; border-radius: 4px; color: #1976d2; font-weight: 600;">{$sMac}</span>
                         </td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef; color: #2d3748; font-weight: 500;">{$vendor}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef; font-family: 'Courier New', monospace; color: #6c757d;">{$ip}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef;">{$hostname_val}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef; color: #2d3748; font-weight: 500;">{$sVendor}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef; font-family: 'Courier New', monospace; color: #6c757d;">{$sIp}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef;">{$sDeviceHostname}</td>
                         <td style="padding: 12px; border-bottom: 1px solid #e9ecef;">
-                            <span style="background: #e8f5e9; color: #2e7d32; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">{$vlan}</span>
+                            <span style="background: #e8f5e9; color: #2e7d32; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">{$sVlan}</span>
                         </td>
-                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef; font-size: 13px;">{$first_seen}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e9ecef; font-size: 13px;">{$sFirstSeen}</td>
                     </tr>
 ROW;
             }
             
-            $html .= <<<HTML
+            $sHtml .= <<<HTML
                 </tbody>
             </table>
         </div>
@@ -308,7 +342,7 @@ ROW;
         <!-- Footer -->
         <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 12px; border-top: 1px solid #e9ecef;">
             <div>🛡️ <strong>OPNsense Device Monitor</strong></div>
-            <div style="font-family: 'Courier New', monospace; color: #495057; margin-top: 5px;">Generated: {$timestamp}</div>
+            <div style="font-family: 'Courier New', monospace; color: #495057; margin-top: 5px;">Generated: {$sTimestamp}</div>
         </div>
     </div>
 </body>
@@ -317,91 +351,101 @@ HTML;
         }
         
         // Odešli email zvoleným transportem.
-        $email_method = strtolower($config['email_method'] ?? 'sendmail');
+        $sEmailMethod = strtolower($arrEmailConfig['email_method'] ?? 'smtp');
         try {
-            if ($email_method === 'smtp') {
-                $sendResult = $this->sendViaDirectSmtp($subject, $html);
+            if ($sEmailMethod === 'smtp') {
+                $arrSendResult = $this->sendViaDirectSmtp($sSubject, $sHtml);
             } else {
-                $sendResult = $this->sendViaSendmail($email_to, $email_from, $subject, $html);
-                $email_method = 'sendmail';
+                $arrSendResult = $this->sendViaSendmail($sEmailTo, $sEmailFrom, $sSubject, $sHtml);
+                $sEmailMethod = 'sendmail';
             }
 
-            if (($sendResult['result'] ?? '') === 'sent') {
-                $mode = $is_test ? 'TEST' : 'REAL';
-                $count_info = $is_test ? 0 : count($devices ?? []);
-                $this->fLog("SUCCESS: Email sent ({$mode}, transport={$email_method}, {$count_info} devices)", 'EMAIL');
+            if (($arrSendResult['result'] ?? '') === 'sent') {
+                $sMode = $bEmailTest ? 'TEST' : 'REAL';
+                $iLoggedCount = $bEmailTest ? 0 : count($arrEmailDevices ?? []);
+                $this->fLog("SUCCESS: Email sent ({$sMode}, transport={$sEmailMethod}, {$iLoggedCount} devices)", 'EMAIL');
                 return [
                     'result' => 'sent',
-                    'message' => "Email sent to: $email_to",
-                    'transport' => $email_method,
-                    'test' => $is_test,
-                    'count' => $count_info,
+                    'message' => "Email sent to: $sEmailTo",
+                    'transport' => $sEmailMethod,
+                    'test' => $bEmailTest,
+                    'count' => $iLoggedCount,
                 ];
             }
 
-            $error_detail = $sendResult['message'] ?? 'Unknown email transport error';
-            $this->fLog("FAILED: {$email_method} - {$error_detail}", 'EMAIL');
+            $sErrorDetail = $arrSendResult['message'] ?? 'Unknown email transport error';
+            $this->fLog("FAILED: {$sEmailMethod} - {$sErrorDetail}", 'EMAIL');
             return [
                 'result' => 'failed',
-                'message' => $error_detail,
-                'transport' => $email_method,
+                'message' => $sErrorDetail,
+                'transport' => $sEmailMethod,
             ];
-        } catch (\Exception $e) {
-            $this->fLog("FAILED: Exception - " . $e->getMessage(), 'EMAIL');
-            return ['result' => 'failed', 'message' => $e->getMessage(), 'transport' => $email_method];
+        } catch (\Exception $oEmailException) {
+            $this->fLog("FAILED: Exception - " . $oEmailException->getMessage(), 'EMAIL');
+            return ['result' => 'failed', 'message' => $oEmailException->getMessage(), 'transport' => $sEmailMethod];
         }
     }
 
     /**
-     * UNIVERZÁLNÍ WEBHOOK - test i real
-     * POST /api/devicemonitor/config/sendWebhook
+     * Odešle testovací nebo provozní webhook.
+     * Vstup: testovací režim a volitelně URL a formát; jinak použije uložené nastavení.
+     * Výstup: pole s výsledkem odeslání, případně s důvodem chyby.
      */
-    public function sendWebhook($is_test = false, $webhook_url = null)
+    /** Vstup: cíl webhooku. Výstup: zda je to platná adresa HTTP nebo HTTPS. */
+    public static function isValidWebhookUrl(string $sUrl): bool
     {
-        
-        
-        // Pokud není webhook_url předán, načti z configu
-        if ($webhook_url === null) {
-            $model = new \OPNsense\DeviceMonitor\DeviceMonitor();
-            $config = $model->getConfig();
-            
-            if ($config['webhook_enabled'] != '1' || empty($config['webhook_url'])) {
+        return strlen($sUrl) <= 4096 && filter_var($sUrl, FILTER_VALIDATE_URL) !== false
+            && in_array(strtolower((string)parse_url($sUrl, PHP_URL_SCHEME)), ['http', 'https'], true);
+    }
+
+    public function sendWebhook($bIsTest = false, $sWebhookUrl = null, $sType = null, ?array $arrQueuedDevices = null)
+    {
+        if ($sWebhookUrl === null) {
+            $arrConfig = \OPNsense\DeviceMonitor\DeviceMonitor::getConfig();
+            if ($arrConfig['webhook_enabled'] != '1' || empty($arrConfig['webhook_url'])) {
                 return ['result' => 'skipped', 'message' => 'Webhook disabled'];
             }
-            
-            $webhook_url = $config['webhook_url'];
+            $sWebhookUrl = $arrConfig['webhook_url'];
+            $sType = $sType ?? ($arrConfig['webhook_type'] ?? 'auto');
         }
-        
-        
-        // DETEKCE TYPU WEBHOOKU
-        $type = 'generic';
-        if (stripos($webhook_url, 'ntfy') !== false) {
-            $type = 'ntfy';
-        } elseif (stripos($webhook_url, 'discord') !== false) {
-            $type = 'discord';
+
+        if (!self::isValidWebhookUrl($sWebhookUrl)) {
+            return ['result' => 'failed', 'message' => 'Webhook URL must use HTTP or HTTPS'];
         }
-        
+
+        $sType = $sType ?? 'auto';
+        if (!in_array($sType, self::WEBHOOK_TYPES, true)) {
+            return ['result' => 'failed', 'message' => 'Invalid webhook type'];
+        }
+
+        // Automatická volba zachovává chování stávajících instalací.
+        if ($sType === 'auto') {
+            if (stripos($sWebhookUrl, 'ntfy') !== false) {
+                $sType = 'ntfy';
+            } elseif (stripos($sWebhookUrl, 'discord') !== false) {
+                $sType = 'discord';
+            } else {
+                $sType = 'generic';
+            }
+        }
+
         try {
-            if ($is_test) {
+            if ($bIsTest) {
                 // === TEST MODE ===
-                
-                if ($type === 'ntfy') {
-                    // NTFY.SH TEST
-                    $ch = curl_init($webhook_url);
-                    curl_setopt($ch, CURLOPT_POST, 1);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, 'Device Monitor webhook is working! ✅');
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+
+                if ($sType === 'ntfy') {
+                    // Testovací zpráva ntfy
+                    $sBody = 'Device Monitor webhook is working! ✅';
+                    $arrHeaders = [
+                        'Content-Type: text/plain; charset=UTF-8',
                         'Title: 🧪 OPNsense Test',
                         'Tags: test,opnsense',
                         'Priority: 3'
-                    ]);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    
-                } elseif ($type === 'discord') {
+                    ];
+
+                } elseif ($sType === 'discord') {
                     // DISCORD TEST
-                    $payload = [
+                    $arrPayload = [
                         'username' => 'OPNsense Device Monitor',
                         'embeds' => [[
                             'title' => '🧪 Test Notification',
@@ -419,18 +463,13 @@ HTML;
                             'footer' => ['text' => 'OPNsense Device Monitor']
                         ]]
                     ];
-                    
-                    $ch = curl_init($webhook_url);
-                    curl_setopt($ch, CURLOPT_POST, 1);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    
+
+                    $sBody = json_encode($arrPayload);
+                    $arrHeaders = ['Content-Type: application/json'];
+
                 } else {
                     // GENERIC TEST
-                    $payload = [
+                    $arrPayload = [
                         'event' => 'test',
                         'title' => '🧪 OPNsense Device Monitor - Test',
                         'message' => 'This is a test notification!',
@@ -438,122 +477,121 @@ HTML;
                         'hostname' => gethostname(),
                         'test' => true
                     ];
-                    
-                    $ch = curl_init($webhook_url);
-                    curl_setopt($ch, CURLOPT_POST, 1);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+                    $sBody = json_encode($arrPayload);
+                    $arrHeaders = ['Content-Type: application/json'];
                 }
-                
+
             } else {
                 // === REAL MODE - načti z DB ===
-                $devices = $this->loadDevicesFromDb();
-                
-                if ($devices === null) {
+                $arrDevices = $arrQueuedDevices ?? $this->loadDevicesFromDb();
+
+                if ($arrDevices === null) {
                     return ['result' => 'failed', 'message' => 'Cannot load devices'];
                 }
-                
-                if (empty($devices)) {
+
+                if (empty($arrDevices)) {
                     return ['result' => 'skipped', 'message' => 'No pending notifications'];
                 }
-                
-                $count = count($devices);
-                $hostname = gethostname();
-                
-                if ($type === 'ntfy') {
-                    // NTFY.SH REAL
-                    $msg = "{$count} new device(s) detected:\n\n";
-                    foreach (array_slice($devices, 0, 5) as $d) {
-                        $msg .= "• {$d['mac']} - {$d['vendor']} ({$d['ip']})\n";
+
+                $iCount = count($arrDevices);
+                $sHostname = gethostname();
+
+                if ($sType === 'ntfy') {
+                    // Provozní zpráva ntfy
+                    $sMessage = "{$iCount} new device(s) detected:\n\n";
+                    foreach (array_slice($arrDevices, 0, 5) as $arrDevice) {
+                        $sMessage .= "• {$arrDevice['mac']} - {$arrDevice['vendor']} ({$arrDevice['ip']})\n";
                     }
-                    if ($count > 5) {
-                        $msg .= "\n... and " . ($count - 5) . " more";
+                    if ($iCount > 5) {
+                        $sMessage .= "\n... and " . ($iCount - 5) . " more";
                     }
-                    
-                    $ch = curl_init($webhook_url);
-                    curl_setopt($ch, CURLOPT_POST, 1);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, $msg);
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                        "Title: 🔔 OPNsense: {$count} new device(s)",
+
+                    $sBody = $sMessage;
+                    $arrHeaders = [
+                        'Content-Type: text/plain; charset=UTF-8',
+                        "Title: 🔔 OPNsense: {$iCount} new device(s)",
                         'Tags: opnsense,network',
-                        'Priority: ' . (($count > 3) ? '4' : '3')
-                    ]);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    
-                } elseif ($type === 'discord') {
+                        'Priority: ' . (($iCount > 3) ? '4' : '3')
+                    ];
+
+                } elseif ($sType === 'discord') {
                     // DISCORD REAL
-                    $fields = [];
-                    foreach (array_slice($devices, 0, 10) as $d) {
-                        $fields[] = [
-                            'name' => $d['mac'],
-                            'value' => "**{$d['vendor']}**\nIP: `{$d['ip']}`\nVLAN: `{$d['vlan']}`",
+                    $arrFields = [];
+                    foreach (array_slice($arrDevices, 0, 10) as $arrDevice) {
+                        $arrFields[] = [
+                            'name' => $arrDevice['mac'],
+                            'value' => "**{$arrDevice['vendor']}**\nIP: `{$arrDevice['ip']}`\nVLAN: `{$arrDevice['vlan']}`",
                             'inline' => true
                         ];
                     }
-                    
-                    $payload = [
+
+                    $arrPayload = [
                         'username' => 'OPNsense Device Monitor',
                         'embeds' => [[
-                            'title' => "🔔 {$count} New Device(s) Detected",
-                            'description' => "Server: `$hostname`",
+                            'title' => "🔔 {$iCount} New Device(s) Detected",
+                            'description' => "Server: `$sHostname`",
                             'color' => 3447003,
-                            'fields' => $fields,
+                            'fields' => $arrFields,
                             'footer' => ['text' => 'OPNsense • ' . date('Y-m-d H:i:s')]
                         ]]
                     ];
-                    
-                    $ch = curl_init($webhook_url);
-                    curl_setopt($ch, CURLOPT_POST, 1);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    
+
+                    $sBody = json_encode($arrPayload);
+                    $arrHeaders = ['Content-Type: application/json'];
+
                 } else {
                     // GENERIC REAL
-                    $payload = [
+                    $arrPayload = [
                         'event' => 'new_devices',
-                        'hostname' => $hostname,
+                        'hostname' => $sHostname,
                         'timestamp' => date('Y-m-d H:i:s'),
-                        'device_count' => $count,
-                        'devices' => $devices
+                        'device_count' => $iCount,
+                        'devices' => $arrDevices
                     ];
-                    
-                    $ch = curl_init($webhook_url);
-                    curl_setopt($ch, CURLOPT_POST, 1);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+                    $sBody = json_encode($arrPayload);
+                    $arrHeaders = ['Content-Type: application/json'];
                 }
             }
-            
-            // Odešli webhook
-            $response = curl_exec($ch);
-            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            if ($http_code >= 200 && $http_code < 300) {
+
+            // Použij stejný HTTP transport pro všechny formáty webhooku.
+            $oCurl = curl_init($sWebhookUrl);
+            curl_setopt($oCurl, CURLOPT_POST, 1);
+            curl_setopt($oCurl, CURLOPT_POSTFIELDS, $sBody);
+            curl_setopt($oCurl, CURLOPT_HTTPHEADER, $arrHeaders);
+            if (defined('CURLOPT_PROTOCOLS_STR')) {
+                curl_setopt($oCurl, CURLOPT_PROTOCOLS_STR, 'http,https');
+            } else {
+                curl_setopt($oCurl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+            }
+            curl_setopt($oCurl, CURLOPT_FOLLOWLOCATION, false);
+            curl_setopt($oCurl, CURLOPT_WRITEFUNCTION, static fn ($oHandle, string $sChunk): int => strlen($sChunk));
+            curl_setopt($oCurl, CURLOPT_TIMEOUT, 10);
+            curl_setopt($oCurl, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($oCurl, CURLOPT_SSL_VERIFYHOST, 2);
+            $bSent = curl_exec($oCurl);
+            $iCurlError = curl_errno($oCurl);
+            $iHttpCode = curl_getinfo($oCurl, CURLINFO_HTTP_CODE);
+            curl_close($oCurl);
+
+            if ($bSent === false) {
+                return ['result' => 'failed', 'message' => 'Webhook transport error: ' . curl_strerror($iCurlError)];
+            }
+            if ($iHttpCode >= 200 && $iHttpCode < 300) {
                 return [
-                    'result' => $is_test ? 'ok' : 'sent',
-                    'message' => "Webhook sent (HTTP $http_code)",
-                    'type' => $type,
-                    'test' => $is_test,
-                    'count' => $is_test ? 0 : count($devices ?? [])
+                    'result' => $bIsTest ? 'ok' : 'sent',
+                    'message' => "Webhook sent (HTTP $iHttpCode)",
+                    'type' => $sType,
+                    'test' => $bIsTest,
+                    'count' => $bIsTest ? 0 : count($arrDevices ?? [])
                 ];
             } else {
-                return ['result' => 'failed', 'message' => "HTTP $http_code"];
+                return ['result' => 'failed', 'message' => "HTTP $iHttpCode"];
             }
-            
-        } catch (\Exception $e) {
-            return ['result' => 'failed', 'message' => $e->getMessage()];
+
+        } catch (\Exception $oException) {
+            return ['result' => 'failed', 'message' => $oException->getMessage()];
         }
     }
 }

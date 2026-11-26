@@ -1,3 +1,4 @@
+<!-- Historie: 2.3.3 – popisek počtu zařízení zaznamenaných v Hostwatch (#10). -->
 <metadata>
     <devicemonitor>
         <filename>DeviceMonitor.js</filename>
@@ -10,7 +11,7 @@
             <title>Device Monitor</title>
             <status>Status</status>
             <total>Total Devices</total>
-            <online>Online</online>
+            <online>Seen in the last 15 minutes</online>
             <running>Running</running>
             <stopped>Stopped</stopped>
         </translations>

@@ -1,4 +1,10 @@
 #!/usr/local/bin/python3
+
+# Předpony: d = slovník, i = celé číslo, l = seznam, o = objekt, s = řetězec, x = hodnota proměnlivého typu.
+# U konstant jsou tytéž předpony uvedené velkým písmenem.
+# Historie: 2.4.16 – kontrola uloženého nastavení SMTP.
+# 2.3.7 – sjednocení typových předpon proměnných.
+
 """Direct SMTP transport for OPNsense Device Monitor.
 
 Uses only Python standard-library modules. Configuration is read from the
@@ -17,103 +23,108 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr, getaddresses
 
-CONFIG_FILE = "/var/db/devicemonitor/config.json"
+from runtime_config import read_runtime_config
+
+S_CONFIG_FILE = "/var/db/devicemonitor/config.json"
+D_SMTP_FIELDS = {
+    'smtp_host': '', 'smtp_port': 587, 'smtp_encryption': '', 'smtp_username': '',
+    'smtp_password': '', 'email_from': '', 'email_to': '',
+}
 
 
-def fail(message, code=1):
-    print(json.dumps({"result": "failed", "message": str(message)}, ensure_ascii=False))
-    raise SystemExit(code)
+def fail(x_message, i_exit_code=1):
+    print(json.dumps({"result": "failed", "message": str(x_message)}, ensure_ascii=False))
+    raise SystemExit(i_exit_code)
 
 
 def load_config():
     try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
+        d_data = read_runtime_config(S_CONFIG_FILE, D_SMTP_FIELDS)
     except FileNotFoundError:
-        fail(f"Configuration file not found: {CONFIG_FILE}")
-    except (OSError, json.JSONDecodeError) as exc:
-        fail(f"Cannot read SMTP configuration: {exc}")
-    return data
+        fail(f"Configuration file not found: {S_CONFIG_FILE}")
+    except (OSError, ValueError) as o_error:
+        fail(f"Cannot read SMTP configuration: {o_error}")
+    return d_data
 
 
-def parse_recipients(value):
+def parse_recipients(x_value):
     # Support a single address as before, while also accepting comma/semicolon
     # separated recipients for direct SMTP.
-    raw = str(value or "").replace(";", ",")
-    recipients = [addr.strip() for _, addr in getaddresses([raw]) if addr.strip()]
-    if not recipients:
+    s_raw = str(x_value or "").replace(";", ",")
+    l_recipients = [s_addr.strip() for _, s_addr in getaddresses([s_raw]) if s_addr.strip()]
+    if not l_recipients:
         fail("No valid recipient email address configured")
-    return recipients
+    return l_recipients
 
 
 def main():
-    config = load_config()
+    d_config = load_config()
 
     try:
-        payload = json.load(sys.stdin)
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        fail(f"Invalid message payload: {exc}")
+        d_payload = json.load(sys.stdin)
+    except (json.JSONDecodeError, UnicodeDecodeError) as o_error:
+        fail(f"Invalid message payload: {o_error}")
 
-    host = str(config.get("smtp_host", "")).strip()
+    s_host = str(d_config.get("smtp_host", "")).strip()
     try:
-        port = int(config.get("smtp_port", 587))
+        i_port = int(d_config.get("smtp_port", 587))
     except (TypeError, ValueError):
         fail("Invalid SMTP port")
 
-    encryption = str(config.get("smtp_encryption", "starttls")).strip().lower()
-    username = str(config.get("smtp_username", "")).strip()
-    password = str(config.get("smtp_password", ""))
-    mail_from = str(config.get("email_from", "devicemonitor@opnsense.local")).strip()
-    recipients = parse_recipients(config.get("email_to", ""))
+    s_encryption = str(d_config.get("smtp_encryption", "starttls")).strip().lower()
+    s_username = str(d_config.get("smtp_username", "")).strip()
+    s_password = str(d_config.get("smtp_password", ""))
+    s_mail_from = str(d_config.get("email_from", "devicemonitor@opnsense.local")).strip()
+    l_recipients = parse_recipients(d_config.get("email_to", ""))
 
-    if not host:
+    if not s_host:
         fail("SMTP server is not configured")
-    if port < 1 or port > 65535:
+    if i_port < 1 or i_port > 65535:
         fail("SMTP port must be between 1 and 65535")
-    if encryption not in {"none", "starttls", "ssl"}:
+    if s_encryption not in {"none", "starttls", "ssl"}:
         fail("Invalid SMTP encryption mode")
-    if not mail_from:
+    if not s_mail_from:
         fail("Sender email address is not configured")
 
-    subject = str(payload.get("subject", "OPNsense Device Monitor"))
-    html_body = str(payload.get("html", ""))
-    text_body = str(payload.get("text", "OPNsense Device Monitor notification"))
+    s_subject = str(d_payload.get("subject", "OPNsense Device Monitor"))
+    s_html_body = str(d_payload.get("html", ""))
+    s_text_body = str(d_payload.get("text", "OPNsense Device Monitor notification"))
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = formataddr((socket.gethostname(), mail_from))
-    msg["To"] = ", ".join(recipients)
+    o_mime_message = MIMEMultipart("alternative")
+    o_mime_message["Subject"] = s_subject
+    o_mime_message["From"] = formataddr((socket.gethostname(), s_mail_from))
+    o_mime_message["To"] = ", ".join(l_recipients)
 
     # Follow the same robust MIME approach used by arp/ndp-logging: provide
     # both plain-text and HTML alternatives and force quoted-printable UTF-8.
-    qp_charset = Charset("utf-8")
-    qp_charset.body_encoding = QP
-    msg.attach(MIMEText(text_body, "plain", qp_charset))
-    msg.attach(MIMEText(html_body, "html", qp_charset))
+    o_qp_charset = Charset("utf-8")
+    o_qp_charset.body_encoding = QP
+    o_mime_message.attach(MIMEText(s_text_body, "plain", o_qp_charset))
+    o_mime_message.attach(MIMEText(s_html_body, "html", o_qp_charset))
 
-    context = ssl.create_default_context()
-    server = None
+    o_context = ssl.create_default_context()
+    o_server = None
     try:
-        if encryption == "ssl":
-            server = smtplib.SMTP_SSL(host, port, timeout=10, context=context)
+        if s_encryption == "ssl":
+            o_server = smtplib.SMTP_SSL(s_host, i_port, timeout=10, context=o_context)
         else:
-            server = smtplib.SMTP(host, port, timeout=10)
-            server.ehlo()
-            if encryption == "starttls":
-                server.starttls(context=context)
-                server.ehlo()
+            o_server = smtplib.SMTP(s_host, i_port, timeout=10)
+            o_server.ehlo()
+            if s_encryption == "starttls":
+                o_server.starttls(context=o_context)
+                o_server.ehlo()
 
-        if username:
-            server.login(username, password)
+        if s_username:
+            o_server.login(s_username, s_password)
 
-        server.sendmail(mail_from, recipients, msg.as_string())
+        o_server.sendmail(s_mail_from, l_recipients, o_mime_message.as_string())
         print(json.dumps({"result": "sent", "message": "Email sent", "transport": "smtp"}))
-    except Exception as exc:
-        fail(exc)
+    except Exception as o_error:
+        fail(o_error)
     finally:
-        if server is not None:
+        if o_server is not None:
             try:
-                server.quit()
+                o_server.quit()
             except Exception:
                 pass
 

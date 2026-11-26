@@ -1,9 +1,20 @@
 <acl>
     <page-services-devicemonitor>
-        <name>Services: Device Monitor</name>
+        <name>Services: Device Monitor (read only)</name>
+        <patterns>
+            <pattern>ui/devicemonitor/index/devices</pattern>
+            <pattern>api/devicemonitor/devices/search</pattern>
+            <pattern>api/devicemonitor/devices/stats</pattern>
+            <pattern>api/devicemonitor/config/getversion</pattern>
+            <pattern>api/devicemonitor/config/getinterfaces</pattern>
+            <pattern>api/devicemonitor/service/status</pattern>
+        </patterns>
+    </page-services-devicemonitor>
+    <page-services-devicemonitor-manage>
+        <name>Services: Device Monitor (manage)</name>
         <patterns>
             <pattern>ui/devicemonitor/*</pattern>
             <pattern>api/devicemonitor/*</pattern>
         </patterns>
-    </page-services-devicemonitor>
+    </page-services-devicemonitor-manage>
 </acl>

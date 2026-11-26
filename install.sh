@@ -2,6 +2,9 @@
 
 # Předpony: s = řetězec nebo cesta, i = číslo.
 # Historie:
+# 2.4.15 – instalace rotace logu spravované systémem.
+# 2.4.14 – zajištění práv ke konfiguraci i po upgradu.
+# 2.3.7 – kontrola typových předpon při sjednocení pluginu.
 # 2.3.1 – instalace katalogů do standardní cesty OPNsense (#7).
 # 2.3.2 – anglický výpis, dvojjazyčné nadpisy a oprava cesty k odinstalátoru.
 
@@ -104,6 +107,10 @@ mkdir -p /usr/local/etc/rc.d
 mkdir -p /etc/rc.d
 mkdir -p /var/db/devicemonitor
 chmod 755 /var/db/devicemonitor
+if [ -f "/var/db/devicemonitor/config.json" ] && ! chmod 600 /var/db/devicemonitor/config.json; then
+    echo "  ✗ ERROR: Could not protect the existing Device Monitor configuration."
+    exit 1
+fi
 
 echo "  ✓ Directories created"
 
@@ -243,6 +250,16 @@ echo "  ✓ PHP scripts installed"
 cp src/opnsense/service/conf/actions.d/actions_devicemonitor.conf \
    /usr/local/opnsense/service/conf/actions.d/
 echo "  ✓ configd actions installed"
+
+if ! mkdir -p /usr/local/etc/newsyslog.conf.d || ! install -m 0644 \
+    src/etc/newsyslog.conf.d/devicemonitor.conf /usr/local/etc/newsyslog.conf.d/devicemonitor.conf; then
+    echo "  ✗ ERROR: Could not install Device Monitor log rotation."
+    exit 1
+fi
+if ! (umask 077 && touch /var/log/devicemonitor.log && chmod 600 /var/log/devicemonitor.log); then
+    echo "  ✗ ERROR: Could not protect the Device Monitor log."
+    exit 1
+fi
 
 echo 'devicemonitor_enable="YES"' > /etc/rc.conf.d/devicemonitor
 chmod 644 /etc/rc.conf.d/devicemonitor

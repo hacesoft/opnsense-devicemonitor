@@ -1,3 +1,6 @@
+{# Předpony: b = příznak, o = objekt, s = řetězec.
+   Historie: 2.3.7 – sjednocení typových předpon proměnných.
+   2.3.3 – popisek počtu zařízení zaznamenaných v Hostwatch (#10). #}
 <div id="devicemonitor_widget">
     <table class="table table-striped table-condensed">
         <tbody>
@@ -10,7 +13,7 @@
                 <td><strong id="dm_widget_total">—</strong></td>
             </tr>
             <tr>
-                <td style="color:#aaa;">Online</td>
+                <td style="color:#aaa;"> {{ lang._('Seen in the last 15 minutes') }}</td>
                 <td><strong id="dm_widget_online" style="color:#4CAF50;">—</strong></td>
             </tr>
         </tbody>
@@ -19,19 +22,19 @@
 
 <script>
 function update_devicemonitor_widget() {
-    ajaxGet('/api/devicemonitor/service/status', {}, function(data, status) {
-        if (status === 'success') {
-            var isRunning = data.result === 'running';
+    ajaxGet('/api/devicemonitor/service/status', {}, function(oResponse, sStatus) {
+        if (sStatus === 'success') {
+            var bRunning = oResponse.result === 'running';
             $('#dm_widget_status')
                 .removeClass('label-default label-success label-danger')
-                .addClass(isRunning ? 'label-success' : 'label-danger')
-                .text(isRunning ? 'Running (PID: '+data.pid+')' : 'Stopped');
+                .addClass(bRunning ? 'label-success' : 'label-danger')
+                .text(bRunning ? 'Running (PID: '+oResponse.pid+')' : 'Stopped');
         }
     });
-    ajaxGet('/api/devicemonitor/devices/stats', {}, function(data, status) {
-        if (status === 'success') {
-            $('#dm_widget_total').text(data.total || 0);
-            $('#dm_widget_online').text(data.online || 0);
+    ajaxGet('/api/devicemonitor/devices/stats', {}, function(oResponse, sStatus) {
+        if (sStatus === 'success') {
+            $('#dm_widget_total').text(oResponse.total || 0);
+            $('#dm_widget_online').text(oResponse.online || 0);
         }
     });
 }

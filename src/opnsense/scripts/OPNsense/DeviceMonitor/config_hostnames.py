@@ -1,6 +1,7 @@
 """Načítání názvů zařízení z konfiguračního stromu OPNsense.
 
 Předpony: d = slovník, o = objekt XML, s = řetězec.
+2.3.7 – kontrola typových předpon při sjednocení pluginu.
 Historie: 2.3.1 – podpora rezervací Kea DHCPv4 (autor ptrsmk, PR #11).
 """
 

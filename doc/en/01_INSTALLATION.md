@@ -14,21 +14,21 @@
 
 ### Install from Windows with WinSCP and SSH
 
-1. Download the Device Monitor 2.3.2 installation ZIP.
+1. Download the Device Monitor 2.4.16 installation ZIP.
 2. Enable SSH if needed under **System → Settings → Administration → Secure Shell**.
 3. Use WinSCP to upload the ZIP to `/tmp/` on OPNsense.
 4. Open an SSH session, obtain root privileges, and run:
 
 ```sh
 cd /tmp
-unzip opnsense-devicemonitor-2.3.2.zip
+unzip opnsense-devicemonitor-2.4.16.zip
 cd opnsense-devicemonitor
 sh install.sh
 ```
 
 ### Download version 2.3 directly over SSH
 
-The link below points to the previously published version 2.3. Use the ZIP from the section above for version 2.3.2. On OPNsense, run the following as root:
+The link below points to the previously published version 2.3. Use the ZIP from the section above for version 2.4.16. On OPNsense, run the following as root:
 
 ```sh
 cd /tmp

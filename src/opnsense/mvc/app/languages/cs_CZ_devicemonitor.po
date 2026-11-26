@@ -1,3 +1,5 @@
+# Historie: 2.3.6 – popisky pasivních statistik PF.
+# Historie: 2.3.3 – volba webhooku a popisky Hostwatch (#8, #10).
 # Device Monitor Plugin - Překlady cs_CZ
 # Copyright (C) 2026 Hacesoft
 #
@@ -7,7 +9,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Device Monitor 2.3.1\n"
+"Project-Id-Version: Device Monitor 2.4.16\n"
 "POT-Creation-Date: 2026-04-10 00:00+0000\n"
 "PO-Revision-Date: 2026-04-10 00:00+0100\n"
 "Last-Translator: Hacesoft\n"
@@ -408,3 +410,247 @@ msgstr "Neplatná webhook URL"
 #: ConfigController.php
 msgid "Scan interval must be between 60 and 3600 seconds"
 msgstr "Scan interval musí být mezi 60-3600 sekundami"
+
+msgid "Webhook type"
+msgstr "Typ webhooku"
+
+msgid "Automatic"
+msgstr "Automaticky"
+
+msgid "Generic JSON"
+msgstr "Obecný JSON"
+
+msgid "Invalid webhook type"
+msgstr "Neplatný typ webhooku"
+
+msgid "Hostwatch Refresh Interval"
+msgstr "Interval načítání Hostwatch"
+
+msgid "Seconds between Hostwatch refreshes (60–3600)"
+msgstr "Počet sekund mezi načteními Hostwatch (60–3600)"
+
+msgid "Hostwatch status"
+msgstr "Stav podle Hostwatch"
+
+msgid "Seen in the last 15 minutes"
+msgstr "Zaznamenáno za posledních 15 minut"
+
+msgid "Not seen in the last 15 minutes"
+msgstr "Nezaznamenáno za posledních 15 minut"
+
+msgid "Manual ping"
+msgstr "Ruční ping"
+
+msgid "Run manual ping"
+msgstr "Spustit ruční ping"
+
+msgid "Ping reply"
+msgstr "Odpověď na ping"
+
+msgid "No ping reply"
+msgstr "Bez odpovědi na ping"
+
+msgid "Ping failed"
+msgstr "Ping selhal"
+
+msgid "Recent firewall traffic"
+msgstr "Nedávný provoz přes firewall"
+
+msgid "Show recent traffic using existing firewall statistics. No probes are sent."
+msgstr "Zobrazí nedávný provoz podle stávajících statistik firewallu. Neodesílá žádné dotazy na zařízení."
+
+msgid "Traffic observed"
+msgstr "Zaznamenán provoz"
+
+msgid "No current firewall statistics. Check the Device Monitor service and Firewall Sessions permissions."
+msgstr "Aktuální statistiky firewallu nejsou dostupné. Zkontroluj službu Device Monitor a oprávnění k diagnostice Firewall Sessions."
+
+# 2.4.0 – sloupce a známá zařízení
+msgid "Columns"
+msgstr "Sloupce"
+
+msgid "Show all columns"
+msgstr "Zobrazit všechny sloupce"
+
+msgid "All devices"
+msgstr "Všechna zařízení"
+
+msgid "Known device"
+msgstr "Známé zařízení"
+
+msgid "Known devices"
+msgstr "Známá zařízení"
+
+msgid "Unmarked devices"
+msgstr "Neoznačená zařízení"
+
+msgid "Mark as known"
+msgstr "Označit jako známé"
+
+msgid "Remove known mark"
+msgstr "Zrušit označení"
+
+msgid "Could not save the device mark"
+msgstr "Označení zařízení se nepodařilo uložit"
+
+msgid "Observed packets: %s"
+msgstr "Zaznamenané pakety: %s"
+
+msgid "No traffic observed in the last 15 minutes"
+msgstr "Za posledních 15 minut nezaznamenán provoz"
+
+msgid "No change in counters"
+msgstr "Čítače beze změny"
+
+msgid "Counter decreased"
+msgstr "Čítač klesl"
+
+msgid "Waiting for another reading"
+msgstr "Čeká na další snímek"
+
+msgid "No matching PF states"
+msgstr "Bez odpovídajících stavů PF"
+
+msgid "Latest PF reading unavailable"
+msgstr "Poslední snímek PF nedostupný"
+
+msgid "PF reading"
+msgstr "Načtení PF"
+
+msgid "Next 15-minute traffic review in"
+msgstr "Další 15minutové vyhodnocení provozu za"
+
+msgid "Devices with traffic at last review: %s"
+msgstr "Zařízení s provozem při posledním vyhodnocení: %s"
+
+msgid "Device activity"
+msgstr "Aktivita zařízení"
+
+msgid "Hostwatch"
+msgstr "Hostwatch"
+
+msgid "Firewall (IP counters)"
+msgstr "Firewall (čítače IP)"
+
+msgid "Wait after the last discovery (seconds)"
+msgstr "Čekání od posledního nálezu (sekundy)"
+
+msgid "Maximum wait from the first discovery (seconds)"
+msgstr "Nejdelší čekání od prvního nálezu (sekundy)"
+
+msgid "Each discovery restarts the wait. Without a maximum, a continuous series can delay email indefinitely. A wait of 0 sends each group immediately."
+msgstr "Každý nález spustí čekání znovu. Bez maxima může nepřetržitá série odkládat e-mail libovolně dlouho. Čekání 0 odešle každou skupinu hned."
+
+msgid "Use whole seconds. Wait can be 0–3600 seconds. When enabled, the maximum must be 1–3600 seconds and at least as long as the wait."
+msgstr "Použij celé sekundy. Čekání může být 0–3600 sekund. Zapnuté maximum musí být 1–3600 sekund a alespoň tak dlouhé jako čekání."
+
+msgid "Email batching mode"
+msgstr "Režim dávkování e-mailů"
+
+msgid "Wait for a pause, with a maximum"
+msgstr "Čekat na pauzu, s maximem"
+
+msgid "Wait for a pause, without a maximum"
+msgstr "Čekat na pauzu, bez maxima"
+
+msgid "Invalid email batching mode"
+msgstr "Neplatný režim dávkování e-mailů"
+
+msgid "Show setting help"
+msgstr "Zobrazit nápovědu k nastavení"
+
+msgid "Apply saves the settings from all tabs."
+msgstr "Použít uloží nastavení ze všech karet."
+
+msgid "Send email when Device Monitor discovers new devices on the selected interfaces. Email is off on a fresh installation."
+msgstr "Odesílá e-mail při nálezu nových zařízení na vybraných rozhraních. V nové instalaci je vypnutý."
+
+msgid "Enter one email address to receive device alerts and test messages."
+msgstr "Zadej jednu e-mailovou adresu pro upozornění a testovací zprávy."
+
+msgid "Enter one sender address permitted by your mail server."
+msgstr "Zadej jednu adresu odesílatele, kterou povoluje poštovní server."
+
+msgid "Direct SMTP connects to your mail server. Local Sendmail / Postfix uses the configured mailer on OPNsense."
+msgstr "Direct SMTP se připojí k tvému poštovnímu serveru. Local Sendmail / Postfix použije místní poštovní službu nakonfigurovanou v OPNsense."
+
+msgid "With a maximum, a long series can produce several summaries. Without a maximum, a continuous series can keep delaying the email."
+msgstr "S maximem může při delší sérii přijít více souhrnů. Bez maxima může nepřetržitá série odeslání dál odkládat."
+
+msgid "Each new discovery restarts the wait. Enter 0–3600 seconds. Default: 15. A value of 0 sends the group from one Hostwatch refresh immediately."
+msgstr "Každý nový nález spustí čekání znovu. Zadej 0–3600 sekund, výchozí je 15. Při hodnotě 0 se skupina z jednoho načtení Hostwatch odešle hned."
+
+msgid "Enter 1–3600 seconds from the first discovery. Default: 45. The maximum must be at least as long as the wait."
+msgstr "Zadej 1–3600 sekund od prvního nálezu, výchozí je 45. Maximum musí být alespoň stejně dlouhé jako čekání."
+
+msgid "Enter the SMTP hostname or IP address, for example smtp.example.com."
+msgstr "Zadej název nebo IP adresu SMTP serveru, například smtp.example.com."
+
+msgid "Use the port required by your provider. Common ports are 587 for STARTTLS and 465 for SSL/TLS."
+msgstr "Použij port svého poskytovatele. Obvykle je to 587 pro STARTTLS a 465 pro SSL/TLS."
+
+msgid "Match the server settings. STARTTLS upgrades an existing connection, SSL/TLS encrypts from the start, and None leaves it unencrypted."
+msgstr "Použij nastavení podle serveru. STARTTLS zapne šifrování po navázání spojení, SSL/TLS šifruje od začátku a volba Žádné ponechá spojení nešifrované."
+
+msgid "Enter the login required by your SMTP provider. Leave it blank if the server accepts mail without authentication."
+msgstr "Zadej přihlašovací jméno požadované poskytovatelem SMTP. Pokud server přijímá poštu bez přihlášení, nech pole prázdné."
+
+msgid "Enter a new SMTP or app password to replace the saved password. Leave the field blank to keep the saved password."
+msgstr "Nové heslo pro SMTP nebo heslo aplikace nahradí uložené heslo. Prázdné pole uložené heslo zachová."
+
+msgid "Saves the current settings and sends one test email immediately, without waiting for a batch."
+msgstr "Uloží aktuální nastavení a ihned odešle jeden testovací e-mail bez čekání na dávku."
+
+msgid "Select which interfaces can trigger this notification. An empty selection includes all interfaces."
+msgstr "Vyber rozhraní, ze kterých mají chodit tato upozornění. Prázdný výběr zahrnuje všechna rozhraní."
+
+msgid "Send a webhook when Device Monitor discovers new devices on the selected interfaces. Webhooks are off on a fresh installation."
+msgstr "Odesílá webhook při nálezu nových zařízení na vybraných rozhraních. V nové instalaci je vypnutý."
+
+msgid "Automatic chooses a format from the URL. For ntfy on a custom server, select ntfy explicitly. Use Generic JSON for your own JSON endpoint."
+msgstr "Automaticky vybírá formát podle URL. Pro ntfy na vlastním serveru vyber ntfy výslovně. Obecný JSON použij pro vlastní koncový bod přijímající JSON."
+
+msgid "Enter the full HTTP or HTTPS URL, including the ntfy topic when applicable. HTTPS requires a trusted certificate. Leave blank to keep the saved URL."
+msgstr "Zadej celou URL s HTTP nebo HTTPS. U ntfy přidej i téma. HTTPS vyžaduje důvěryhodný certifikát. Prázdné pole uloženou URL zachová."
+
+msgid "Sends a test using the entered URL or the saved URL, and the current format. The test does not save settings."
+msgstr "Odešle test na zadanou nebo uloženou URL a použije aktuální formát. Test nastavení neukládá."
+
+msgid "Periodically reads new devices from the Hostwatch database. Enable this for automatic discovery and notifications."
+msgstr "Pravidelně načítá nová zařízení z databáze Hostwatch. Zapni pro automatické zjišťování a upozornění."
+
+msgid "Enter 60–3600 seconds between Hostwatch refreshes. Default: 300. This interval affects when the plugin first sees a new device."
+msgstr "Zadej 60–3600 sekund mezi načteními Hostwatch, výchozí je 300. Interval ovlivňuje, kdy plugin poprvé zaregistruje nové zařízení."
+
+msgid "Read existing firewall counters to supplement Hostwatch activity. Off by default. Traffic within a single network segment can bypass the firewall."
+msgstr "Doplňuje aktivitu Hostwatch z existujících čítačů firewallu. Ve výchozím stavu je vypnuto. Provoz uvnitř jednoho síťového segmentu může firewall obejít."
+
+msgid "Find the user guides in the project repository. The required OPNsense version is shown below."
+msgstr "Návody najdeš v repozitáři projektu. Požadovaná verze OPNsense je uvedená níže."
+
+msgid "Saved on OPNsense"
+msgstr "Uloženo na OPNsense"
+
+msgid "Remove saved SMTP password"
+msgstr "Odstranit uložené heslo SMTP"
+
+msgid "Remove saved webhook URL"
+msgstr "Odstranit uloženou URL webhooku"
+
+msgid "Enter a webhook URL first."
+msgstr "Nejdřív zadej URL webhooku."
+
+msgid "Webhook URL must use HTTP or HTTPS"
+msgstr "URL webhooku musí používat HTTP nebo HTTPS"
+
+msgid "Invalid configuration field type"
+msgstr "Neplatný typ, délka nebo znaky v nastavení"
+
+msgid "Invalid configuration switch value"
+msgstr "Přepínač v nastavení musí mít hodnotu 0 nebo 1"
+
+msgid "SMTP server must be a hostname or IP address"
+msgstr "SMTP server musí být název hostitele nebo IP adresa"
+
+msgid "Invalid interface list"
+msgstr "Neplatný seznam rozhraní"

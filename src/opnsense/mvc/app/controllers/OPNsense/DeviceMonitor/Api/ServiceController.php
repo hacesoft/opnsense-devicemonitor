@@ -1,5 +1,9 @@
 <?php
 
+// Předpony: arr = pole, i = celé číslo, o = objekt, s = řetězec.
+// Historie: 2.4.14 – kontrola PID a práv pro ovládání služby.
+// 2.3.7 – sjednocení typových předpon proměnných.
+
 namespace OPNsense\DeviceMonitor\Api;
 
 use OPNsense\Base\ApiControllerBase;
@@ -13,9 +17,10 @@ class ServiceController extends ApiControllerBase
     public function scanAction()
     {
         if ($this->request->isPost()) {
-            $backend = new Backend();
-            $response = $backend->configdRun("devicemonitor scan");
-            return ['result' => 'ok', 'output' => $response];
+            $this->throwReadOnly();
+            $oBackend = new Backend();
+            $sResponse = $oBackend->configdRun("devicemonitor scan");
+            return ['result' => 'ok', 'output' => $sResponse];
         }
         
         return ['result' => 'failed'];
@@ -26,19 +31,21 @@ class ServiceController extends ApiControllerBase
      */
     public function statusAction()
     {
-        $model = new \OPNsense\DeviceMonitor\DeviceMonitor();
-        $pidFile = $model->getPidFilePath();
+        $oModel = new \OPNsense\DeviceMonitor\DeviceMonitor();
+        $sPidFile = $oModel->getPidFilePath();
         
-        if (file_exists($pidFile)) {
-            $pid = trim(file_get_contents($pidFile));
+        if (file_exists($sPidFile)) {
+            $sPid = trim(file_get_contents($sPidFile));
             
-            // Zkontroluj jestli proces běží
-            exec("ps -p $pid", $output, $return);
+            if (!preg_match('/^[1-9][0-9]{0,9}$/D', $sPid)) {
+                return ['result' => 'stopped', 'message' => 'Invalid daemon PID'];
+            }
+            exec('/bin/ps -p ' . escapeshellarg($sPid), $arrCommandOutput, $iExitCode);
             
-            if ($return === 0) {
+            if ($iExitCode === 0) {
                 return [
                     'result' => 'running',
-                    'pid' => $pid,
+                    'pid' => $sPid,
                     'message' => 'Daemon is running'
                 ];
             } else {
@@ -61,17 +68,18 @@ class ServiceController extends ApiControllerBase
     public function startAction()
     {
         if ($this->request->isPost()) {
-            $status = $this->statusAction();
-            if ($status['result'] === 'running') {
+            $this->throwReadOnly();
+            $arrStatus = $this->statusAction();
+            if ($arrStatus['result'] === 'running') {
                 return ['result' => 'already_running', 'message' => 'Daemon is already running'];
             }
 
-            $backend = new Backend();
-            $backend->configdRun('devicemonitor start');
+            $oBackend = new Backend();
+            $oBackend->configdRun('devicemonitor start');
             sleep(1);
 
-            $status = $this->statusAction();
-            if ($status['result'] === 'running') {
+            $arrStatus = $this->statusAction();
+            if ($arrStatus['result'] === 'running') {
                 return ['result' => 'started', 'message' => 'Daemon started successfully'];
             } else {
                 return ['result' => 'failed', 'message' => 'Failed to start daemon'];
@@ -86,12 +94,13 @@ class ServiceController extends ApiControllerBase
     public function stopAction()
     {
         if ($this->request->isPost()) {
-            $backend = new Backend();
-            $backend->configdRun('devicemonitor stop');
+            $this->throwReadOnly();
+            $oBackend = new Backend();
+            $oBackend->configdRun('devicemonitor stop');
             sleep(1);
 
-            $status = $this->statusAction();
-            if ($status['result'] === 'stopped') {
+            $arrStatus = $this->statusAction();
+            if ($arrStatus['result'] === 'stopped') {
                 return ['result' => 'stopped', 'message' => 'Daemon stopped successfully'];
             } else {
                 return ['result' => 'failed', 'message' => 'Failed to stop daemon'];
@@ -106,8 +115,9 @@ class ServiceController extends ApiControllerBase
     public function restartAction()
     {
         if ($this->request->isPost()) {
-            $backend = new Backend();
-            $backend->configdRun('devicemonitor restart');
+            $this->throwReadOnly();
+            $oBackend = new Backend();
+            $oBackend->configdRun('devicemonitor restart');
             sleep(2);
             return $this->statusAction();
         }
