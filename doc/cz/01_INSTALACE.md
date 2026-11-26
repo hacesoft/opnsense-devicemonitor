@@ -2,98 +2,32 @@
 
 [Přehled projektu](../../README_CZ.md) · [English](../en/01_INSTALLATION.md)
 
-## Požadavky
-
-- **OPNsense 26.1.5 nebo novější**
-- **SSH přístup** (System → Settings → Administration → Secure Shell)
-- **Root účet** nebo admin s přístupem do CLI
-
-> ⚠️ Verze starší než 26.1.5 nejsou podporovány. Plugin používá API a mechanismy zavedené ve verzi 26.x.
-
 ## Instalace
 
-### Instalace z Windows přes WinSCP a SSH
+Potřebuješ **OPNsense 26.1.5 nebo novější**, přístup k příkazové řádce a oprávnění root. ZIP můžeš na firewall nahrát přes SCP, SFTP nebo například WinSCP. SSH se povoluje v **System → Settings → Administration**.
 
-1. Stáhni instalační ZIP Device Monitor 2.4.16.
-2. Pokud SSH ještě nepoužíváš, povol ho v **System → Settings → Administration → Secure Shell**.
-3. Nahraj ZIP přes WinSCP do `/tmp/` na OPNsense.
-4. Připoj se přes SSH, přepni se na účet s oprávněním root a spusť:
+Nahraj instalační ZIP do `/tmp` a spusť instalaci jako root. V příkladu je použitý balík 2.4.16 s aktualizovanou dokumentací. Název přizpůsob staženému souboru.
 
 ```sh
-cd /tmp
-unzip opnsense-devicemonitor-2.4.16.zip
-cd opnsense-devicemonitor
+unzip /tmp/opnsense-devicemonitor-2.4.16-docs.zip -d /tmp/devicemonitor-install
+cd /tmp/devicemonitor-install/opnsense-devicemonitor
 sh install.sh
 ```
 
-### Stažení verze 2.3 přímo přes SSH
+V **System → Diagnostics → Services** ověř stav služby `devicemonitor`. Potom otevři **Services → Device Monitor → Settings** a pokračuj podle [návodu k nastavení](02_NASTAVENI_A_POUZITI.md).
 
-Odkaz v příkazu níže vede na dříve zveřejněnou verzi 2.3. Pro verzi 2.4.16 použij ZIP z předchozího postupu. Na OPNsense spusť jako root:
+## Aktualizace
 
-```sh
-cd /tmp
-fetch https://raw.githubusercontent.com/hacesoft/opnsense-devicemonitor/main/release/opnsense-devicemonitor28082026_1812.zip
-unzip opnsense-devicemonitor28082026_1812.zip
-cd opnsense-devicemonitor
-sh install.sh
-```
+Rozbal nový ZIP do prázdného adresáře a spusť jeho `install.sh` stejným postupem. Aktualizace zachová databázi včetně čekajících upozornění a uloženou konfiguraci v `/var/db/devicemonitor`. Po aktualizaci ověř verzi v záhlaví pluginu a stav služby.
 
-V **System → Diagnostics → Services** ověř, že služba `devicemonitor` běží. OPNsense kvůli instalaci nemusíš restartovat.
-
-### Aktualizace stávající instalace
-
-Spusť `install.sh` z novějšího balíku. Při nalezení stávající instalace skript používá tichou odinstalaci, která zachová databázi zařízení. Potom můžeš pokračovat podle [návodu k nastavení](02_NASTAVENI_A_POUZITI.md).
-
-### Co dělá install.sh
-
-1. Zkontroluje verzi OPNsense (minimum 26.1.5)
-2. Spustí `uninstall.sh --silent` pokud je detekována stará instalace (zachová databázi)
-3. Vytvoří všechny potřebné adresáře
-4. Zkopíruje RC skript a zaregistruje službu v `plugins.inc.d`
-5. Nainstaluje dashboard widget
-6. Zkompiluje překladové soubory
-7. Zkopíruje MVC controllery, modely, views
-8. Zkopíruje Python, shell a PHP skripty
-9. Zkopíruje configd akce
-10. Zabije zombie procesy daemona, spustí čerstvou instanci přes `configctl devicemonitor start`
+Při přechodu z verze starší než 2.4.14 se dosavadní delegované oprávnění Device Monitor omezí na čtení. Správu můžeš delegovaným účtům povolit podle [přehledu oprávnění](04_TECHNICKA_DOKUMENTACE.md).
 
 ## Odinstalace
 
-### Metoda 1: uninstall.sh (doporučeno)
+Z rozbaleného instalačního balíku spusť jako root:
 
-```bash
-cd /cesta/k/opnsense-devicemonitor
+```sh
 sh uninstall.sh
 ```
 
-Odstraní všechny soubory, zastaví daemon, vypne autostart a vyčistí cache. Databáze `/var/db/devicemonitor/devices.db` je smazána.
-
-### Metoda 2: Tichá odinstalace (zachová databázi)
-
-```bash
-sh uninstall.sh --silent
-```
-
-Používá interně `install.sh` při upgrade. Odstraní všechny soubory, ale zachová databázi.
-
-### Metoda 3: Ruční
-
-```bash
-pkill -f monitor_daemon.py
-rm -f /var/run/devicemonitor.pid
-rm -f /etc/rc.conf.d/devicemonitor
-rm -f /usr/local/etc/rc.d/devicemonitor
-rm -f /etc/rc.d/devicemonitor
-rm -f /usr/local/etc/inc/plugins.inc.d/devicemonitor.inc
-rm -rf /usr/local/opnsense/mvc/app/controllers/OPNsense/DeviceMonitor
-rm -rf /usr/local/opnsense/mvc/app/models/OPNsense/DeviceMonitor
-rm -rf /usr/local/opnsense/mvc/app/views/OPNsense/DeviceMonitor
-rm -rf /usr/local/opnsense/scripts/OPNsense/DeviceMonitor
-rm -f /usr/local/opnsense/service/conf/actions.d/actions_devicemonitor.conf
-rm -f /usr/local/opnsense/www/js/widgets/DeviceMonitor.js
-rm -f /usr/local/opnsense/www/js/widgets/Metadata/DeviceMonitor.xml
-rm -rf /var/db/devicemonitor        # POZOR: smaže databázi zařízení
-rm -f /var/log/devicemonitor.log
-/usr/local/etc/rc.configure_plugins
-service configd restart
-```
+**Úplná odinstalace smaže databázi zařízení, čekající upozornění a uloženou konfiguraci.** Pokud chceš data ponechat pro pozdější instalaci, použij `sh uninstall.sh --silent`.

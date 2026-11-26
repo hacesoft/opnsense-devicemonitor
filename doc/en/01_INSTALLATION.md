@@ -2,98 +2,32 @@
 
 [Project overview](../../README.md) · [Česky](../cz/01_INSTALACE.md)
 
-## Requirements
+## Install
 
-- **OPNsense 26.1.5 or newer**
-- **SSH access** (System → Settings → Administration → Secure Shell)
-- **Root account** or admin with CLI access
+You need **OPNsense 26.1.5 or later**, shell access and root privileges. Transfer the ZIP to the firewall using SCP, SFTP or a client such as WinSCP. SSH can be enabled under **System → Settings → Administration**.
 
-> ⚠️ Versions prior to 26.1.5 are not supported. The plugin uses APIs and mechanisms introduced in 26.x.
-
-## Installation
-
-### Install from Windows with WinSCP and SSH
-
-1. Download the Device Monitor 2.4.16 installation ZIP.
-2. Enable SSH if needed under **System → Settings → Administration → Secure Shell**.
-3. Use WinSCP to upload the ZIP to `/tmp/` on OPNsense.
-4. Open an SSH session, obtain root privileges, and run:
+Upload the installation ZIP to `/tmp` and run the installer as root. This example uses the 2.4.16 package with the updated documentation. Adjust the filename to match your download.
 
 ```sh
-cd /tmp
-unzip opnsense-devicemonitor-2.4.16.zip
-cd opnsense-devicemonitor
+unzip /tmp/opnsense-devicemonitor-2.4.16-docs.zip -d /tmp/devicemonitor-install
+cd /tmp/devicemonitor-install/opnsense-devicemonitor
 sh install.sh
 ```
 
-### Download version 2.3 directly over SSH
+Under **System → Diagnostics → Services**, check that `devicemonitor` is running. Then open **Services → Device Monitor → Settings** and follow the [configuration guide](02_CONFIGURATION_AND_USAGE.md).
 
-The link below points to the previously published version 2.3. Use the ZIP from the section above for version 2.4.16. On OPNsense, run the following as root:
+## Upgrade
+
+Extract the new ZIP into an empty directory and run its `install.sh` as above. An upgrade preserves the database, including pending notifications, and the saved configuration under `/var/db/devicemonitor`. Verify the version in the plugin header and check the service status after upgrading.
+
+When upgrading from a release older than 2.4.14, the existing delegated Device Monitor privilege becomes read-only. Use the [privilege reference](04_TECHNICAL_REFERENCE.md) to grant delegated management access.
+
+## Uninstall
+
+From the extracted installation package, run as root:
 
 ```sh
-cd /tmp
-fetch https://raw.githubusercontent.com/hacesoft/opnsense-devicemonitor/main/release/opnsense-devicemonitor28082026_1812.zip
-unzip opnsense-devicemonitor28082026_1812.zip
-cd opnsense-devicemonitor
-sh install.sh
-```
-
-Open **System → Diagnostics → Services** to verify that the `devicemonitor` service is running. A firewall reboot is not required.
-
-### Upgrade an existing installation
-
-Run `install.sh` from the newer package. The installer detects the existing installation and uses silent removal to preserve the device database. Follow the [configuration guide](02_CONFIGURATION_AND_USAGE.md) after installation.
-
-### What install.sh does
-
-1. Checks OPNsense version (minimum 26.1.5)
-2. Runs `uninstall.sh --silent` if an old installation is detected (preserves database)
-3. Creates all required directories
-4. Copies RC script and registers the service in `plugins.inc.d`
-5. Installs the dashboard widget
-6. Compiles translation files
-7. Copies MVC controllers, models, views
-8. Copies Python, shell, and PHP scripts
-9. Copies configd actions
-10. Kills any zombie daemon processes, starts fresh via `configctl devicemonitor start`
-
-## Uninstallation
-
-### Method 1: uninstall.sh (recommended)
-
-```bash
-cd /path/to/opnsense-devicemonitor
 sh uninstall.sh
 ```
 
-This removes all files, stops the daemon, disables autostart, and clears caches. The database `/var/db/devicemonitor/devices.db` is deleted.
-
-### Method 2: Silent uninstall (preserves database)
-
-```bash
-sh uninstall.sh --silent
-```
-
-Used internally by `install.sh` during upgrades. Removes all files but keeps the database.
-
-### Method 3: Manual
-
-```bash
-pkill -f monitor_daemon.py
-rm -f /var/run/devicemonitor.pid
-rm -f /etc/rc.conf.d/devicemonitor
-rm -f /usr/local/etc/rc.d/devicemonitor
-rm -f /etc/rc.d/devicemonitor
-rm -f /usr/local/etc/inc/plugins.inc.d/devicemonitor.inc
-rm -rf /usr/local/opnsense/mvc/app/controllers/OPNsense/DeviceMonitor
-rm -rf /usr/local/opnsense/mvc/app/models/OPNsense/DeviceMonitor
-rm -rf /usr/local/opnsense/mvc/app/views/OPNsense/DeviceMonitor
-rm -rf /usr/local/opnsense/scripts/OPNsense/DeviceMonitor
-rm -f /usr/local/opnsense/service/conf/actions.d/actions_devicemonitor.conf
-rm -f /usr/local/opnsense/www/js/widgets/DeviceMonitor.js
-rm -f /usr/local/opnsense/www/js/widgets/Metadata/DeviceMonitor.xml
-rm -rf /var/db/devicemonitor        # WARNING: deletes device database
-rm -f /var/log/devicemonitor.log
-/usr/local/etc/rc.configure_plugins
-service configd restart
-```
+**A full uninstall deletes the device database, pending notifications and saved configuration.** To retain the data for a later installation, run `sh uninstall.sh --silent`.

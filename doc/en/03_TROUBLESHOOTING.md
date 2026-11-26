@@ -2,89 +2,22 @@
 
 [Project overview](../../README.md) · [Česky](../cz/03_RESENI_PROBLEMU.md)
 
-## Plugin does not appear in Services
+| Symptom | What to check |
+|---------|---------------|
+| Device Monitor is missing from **Services** | Check the installer result and reload the page. If an administrator can see the plugin but another user cannot, check the [account privileges](04_TECHNICAL_REFERENCE.md). |
+| The device list is empty | Check that `devicemonitor` is running, monitoring is enabled and **Interfaces → Hostwatch** has records. Clear active filters and use the magnifying glass to request a refresh. |
+| Firewall activity is unavailable | Check that **Recent firewall traffic** is enabled, the service is running and the account has access to **Firewall Sessions** diagnostics. Traffic within a VLAN can bypass the firewall. |
+| A device answers ping but the activity is red | The activity status uses recent observations from Hostwatch and optionally the firewall. Manual ping requests a one-time reply. |
+| Email does not arrive | Check whether email is enabled, the interface filter, the batching delays and the mail server settings. Use **Test Email** and check the recipient’s mailbox. |
+| A webhook fails | Check the final URL, format, interface filter and HTTPS certificate. Use **Send Test** to verify the destination’s response. If ntfy displays raw JSON, select the **ntfy** format. |
 
-```bash
-# Verify the .inc file exists (NOT .php!)
-ls /usr/local/etc/inc/plugins.inc.d/devicemonitor.inc
+Check service status in **System → Diagnostics → Services**. From a root shell you can also display the status and recent log entries:
 
-# Verify PHP can load the function
-php -r "require_once('/usr/local/etc/inc/plugins.inc.d/devicemonitor.inc'); var_dump(devicemonitor_services());"
-
-# Reload plugin registry
-/usr/local/etc/rc.configure_plugins
+```sh
+configctl devicemonitor status
+tail -n 50 /var/log/devicemonitor.log
 ```
 
-## Daemon control shows "Execute error"
+If the log reports an invalid configuration file, restore the last working backup or save corrected settings in the web interface. If the database fails, preserve a copy of `/var/db/devicemonitor` first so device data, settings and pending notifications are available for recovery.
 
-```bash
-# Check that daemon_status.sh exists and is executable
-ls -la /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/daemon_status.sh
-
-# Test it manually (must print "running" or "stopped", never an error)
-sh /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/daemon_status.sh
-
-# Check configd actions are loaded
-configctl configd actions | grep devicemonitor
-```
-
-## Multiple zombie daemon processes
-
-```bash
-# Check how many are running
-ps aux | grep monitor_daemon | grep -v grep
-
-# Kill all instances
-pkill -f monitor_daemon.py
-rm -f /var/run/devicemonitor.pid
-
-# Start fresh
-configctl devicemonitor start
-```
-
-Root cause: the RC script was missing `procname`, so `rc.d` could not detect the running process and started a new one every time. Fixed in v2.0 by adding `procname="/usr/local/bin/python3"` to the RC script.
-
-## Widget shows dashes, no data
-
-```bash
-# Verify the stats endpoint works
-curl -k -u "APIKEY:APISECRET" https://localhost/api/devicemonitor/devices/stats
-# Should return: {"total": N, "online": N}
-
-# Verify the status endpoint works
-curl -k -u "APIKEY:APISECRET" https://localhost/api/devicemonitor/service/status
-# Should return: {"result": "running", ...}
-```
-
-If the endpoints return data but the widget still shows dashes, clear browser cache (Ctrl+Shift+R) and check the browser console for JavaScript errors.
-
-## Email notifications not working
-
-```bash
-# Test from command line
-php /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/notify_email.php
-
-# Check logs
-grep EMAIL /var/log/devicemonitor.log
-```
-
-## Daemon won't start
-
-```bash
-# Check log for startup errors
-tail -30 /var/log/devicemonitor.log
-
-# Run daemon manually to see errors
-/usr/local/bin/python3 /usr/local/opnsense/scripts/OPNsense/DeviceMonitor/monitor_daemon.py
-
-# Check that defaults.json is readable
-cat /usr/local/opnsense/mvc/app/models/OPNsense/DeviceMonitor/defaults.json
-```
-
-## Corrupted database
-
-```bash
-cp /var/db/devicemonitor/devices.db /var/db/devicemonitor/devices.db.backup
-rm /var/db/devicemonitor/devices.db
-configctl devicemonitor restart
-```
+When [reporting an issue](https://github.com/hacesoft/opnsense-devicemonitor/issues), include the plugin and OPNsense versions, the symptom and relevant redacted log entries. Keep passwords, webhook URLs and the full configuration file private.
