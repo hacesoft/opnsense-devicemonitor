@@ -6,8 +6,8 @@ Device Monitor is an OPNsense plugin that tracks network devices using the built
 
 ## Features
 
-- View known devices with MAC and IP addresses, vendor, hostname and first and last detection times.
-- Use device names from DHCP reservations or set a name manually. Filter notifications by VLAN.
+- View detected devices by MAC and IP address, hostname, vendor, VLAN and last Hostwatch observation.
+- Mark known devices, check them with a manual ping and export the filtered list to CSV. Optional firewall statistics supplement Hostwatch activity.
 - Send email directly over SMTP. Existing local Sendmail/Postfix setups are supported. Send webhooks to ntfy.sh, Discord or a generic HTTP endpoint.
 - View device counts and service status in the OPNsense Lobby widget, and manage the service in the web interface.
 
@@ -20,8 +20,7 @@ Requires **OPNsense 26.1.5 or later**. Follow the [installation guide](doc/en/01
 - [Installation, upgrade and removal](doc/en/01_INSTALLATION.md)
 - [Configuration and usage](doc/en/02_CONFIGURATION_AND_USAGE.md)
 - [Troubleshooting](doc/en/03_TROUBLESHOOTING.md)
-- [Technical reference](doc/en/04_TECHNICAL_REFERENCE.md)
-- [OPNsense integration checks](doc/en/05_OPNSENSE_TESTS.md)
+- [Administrator reference](doc/en/04_TECHNICAL_REFERENCE.md)
 - [Version history](doc/en/CHANGELOG.md)
 
 ## Project

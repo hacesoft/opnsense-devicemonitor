@@ -1,7 +1,8 @@
 <?php
 
 // Předpony: arr = pole, b = příznak, i = celé číslo, o = objekt, s = řetězec, x = hodnota proměnlivého typu.
-// Historie: 2.4.16 – kontrola typů a formátu identifikátorů zařízení.
+// Historie: 2.4.17 – statistiky widgetu zahrnují nedávnou aktivitu z Hostwatch i PF.
+// 2.4.16 – kontrola typů a formátu identifikátorů zařízení.
 // 2.4.14 – ochrana změn a omezení ručního pingu na uložená zařízení.
 // 2.4.10 – čas serveru pro společné vyhodnocení aktivity.
 // 2.4.9 – termín a výsledek přehledu PF.
@@ -26,6 +27,8 @@ use OPNsense\DeviceMonitor\DeviceMonitor;
  */
 class DevicesController extends ApiControllerBase
 {
+    private const ACTIVITY_WINDOW_SECONDS = 900;
+
     private function getPaths()
     {
         $sDefaultsFile = '/usr/local/opnsense/mvc/app/models/OPNsense/DeviceMonitor/defaults.json';
@@ -250,35 +253,38 @@ class DevicesController extends ApiControllerBase
         ];
     }
 
-    /**
-     * Statistiky zařízení
-     * GET /api/devicemonitor/devices/stats
-     */
+    /** Vstup: čas pozorování a čas serveru v sekundách. Výstup: zda je pozorování z posledních 15 minut. */
+    private function isRecentObservation(?int $iObservedAt, int $iNow): bool
+    {
+        return $iObservedAt !== null && $iObservedAt > 0 && $iObservedAt <= $iNow
+            && $iNow - $iObservedAt < self::ACTIVITY_WINDOW_SECONDS;
+    }
+
+    /** GET /api/devicemonitor/devices/stats vrátí celkový počet a počet nedávno aktivních zařízení. */
     public function statsAction()
     {
-        
-        $arrPaths = $this->getPaths();
-        $arrStats = ['total' => 0, 'online' => 0];
-        
         try {
-            if (file_exists($arrPaths['dbFile'])) {
-                $oDatabase = new \SQLite3($arrPaths['dbFile']);
-                
-                $arrStats['total'] = (int)$oDatabase->querySingle(
-                    "SELECT COUNT(*) FROM devices"
-                );
-                
-                $arrStats['online'] = (int)$oDatabase->querySingle(
-                    "SELECT COUNT(*) FROM devices WHERE is_active = 1"
-                );
-                
-                $oDatabase->close();
+            $arrDevices = (new DeviceMonitor())->getDevices();
+            $arrPfSnapshot = $this->readPfPackets($arrDevices);
+            $oPfRows = $arrPfSnapshot['rows'] ?? null;
+            $iNow = $arrPfSnapshot['now'] ?? time();
+            $iActiveCount = 0;
+
+            foreach ($arrDevices as $arrDevice) {
+                $iLastSeen = $arrDevice['last_seen_at'];
+                $bHostwatch = $this->isRecentObservation($iLastSeen, $iNow)
+                    || ($iLastSeen === null && $arrDevice['status'] === 'online');
+                $sKey = $arrDevice['mac'] . '|' . $arrDevice['ip'];
+                $xPfSeenAt = $oPfRows->{$sKey}['seenAt'] ?? null;
+                $bFirewall = is_int($xPfSeenAt) && $this->isRecentObservation($xPfSeenAt, $iNow);
+                $iActiveCount += (int)($bHostwatch || $bFirewall);
             }
+
+            return ['total' => count($arrDevices), 'online' => $iActiveCount];
         } catch (\Exception $oException) {
             syslog(LOG_ERR, "DeviceMonitor stats error: " . $oException->getMessage());
+            return ['total' => 0, 'online' => 0];
         }
-        
-        return $arrStats;
     }
 
     /**

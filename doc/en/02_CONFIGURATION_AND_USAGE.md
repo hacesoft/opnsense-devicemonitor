@@ -24,7 +24,7 @@ Filter the list by VLAN, activity or known-device status. **Columns** controls w
 
 Click a device’s hostname to edit it. A manual name takes priority over names from Dnsmasq, Kea DHCPv4 and ISC DHCP. For unnamed devices the plugin attempts a reverse DNS lookup.
 
-The **Device Monitor** Lobby widget shows service status, the total device count and the count observed by Hostwatch in the last 15 minutes.
+The **Device Monitor** Lobby widget shows service status, the total device count and the count active in the last 15 minutes. It uses the same Hostwatch and firewall activity rules as the Devices table. Each device counts once.
 
 ### Recent firewall traffic
 

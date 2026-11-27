@@ -6,10 +6,10 @@
 
 You need **OPNsense 26.1.5 or later**, shell access and root privileges. Transfer the ZIP to the firewall using SCP, SFTP or a client such as WinSCP. SSH can be enabled under **System → Settings → Administration**.
 
-Upload the installation ZIP to `/tmp` and run the installer as root. This example uses the 2.4.16 package with the updated documentation. Adjust the filename to match your download.
+Upload the installation ZIP to `/tmp` and run the installer as root. Adjust the filename to match your download.
 
 ```sh
-unzip /tmp/opnsense-devicemonitor-2.4.16-docs.zip -d /tmp/devicemonitor-install
+unzip /tmp/opnsense-devicemonitor-2.4.17.zip -d /tmp/devicemonitor-install
 cd /tmp/devicemonitor-install/opnsense-devicemonitor
 sh install.sh
 ```

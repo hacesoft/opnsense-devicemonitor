@@ -6,10 +6,10 @@
 
 Potřebuješ **OPNsense 26.1.5 nebo novější**, přístup k příkazové řádce a oprávnění root. ZIP můžeš na firewall nahrát přes SCP, SFTP nebo například WinSCP. SSH se povoluje v **System → Settings → Administration**.
 
-Nahraj instalační ZIP do `/tmp` a spusť instalaci jako root. V příkladu je použitý balík 2.4.16 s aktualizovanou dokumentací. Název přizpůsob staženému souboru.
+Nahraj instalační ZIP do `/tmp` a spusť instalaci jako root. Název přizpůsob staženému souboru.
 
 ```sh
-unzip /tmp/opnsense-devicemonitor-2.4.16-docs.zip -d /tmp/devicemonitor-install
+unzip /tmp/opnsense-devicemonitor-2.4.17.zip -d /tmp/devicemonitor-install
 cd /tmp/devicemonitor-install/opnsense-devicemonitor
 sh install.sh
 ```

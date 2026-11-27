@@ -2,6 +2,10 @@
 
 [Project overview](../../README.md) · [Česky](../cz/HISTORIE_VERZI.md)
 
+## v2.4.17
+
+- The dashboard widget counts recent activity from Hostwatch and, when enabled and permitted, from firewall packet counters.
+
 ## v2.4.16
 
 - Validate Hostwatch observations, API input and saved configuration before use.

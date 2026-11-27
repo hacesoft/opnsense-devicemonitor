@@ -24,7 +24,7 @@ Podle VLAN, aktivity a označení známých zařízení můžeš seznam filtrova
 
 Název zařízení můžeš upravit přímo v seznamu. Ruční název má přednost před údaji Dnsmasq, Kea DHCPv4 a ISC DHCP. Když název chybí, plugin se pokusí použít reverzní DNS.
 
-Widget **Device Monitor** v OPNsense Lobby ukazuje stav služby, celkový počet zařízení a počet zařízení zaznamenaných v Hostwatch za posledních 15 minut.
+Widget **Device Monitor** v OPNsense Lobby ukazuje stav služby, celkový počet zařízení a počet zařízení aktivních za posledních 15 minut. Stav vyhodnocuje podle Hostwatch a čítačů firewallu stejně jako tabulka zařízení. Každé zařízení započítá jednou.
 
 ### Nedávný provoz přes firewall
 

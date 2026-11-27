@@ -2,6 +2,10 @@
 
 [Přehled projektu](../../README_CZ.md) · [English](../en/CHANGELOG.md)
 
+## v2.4.17
+
+- Widget na nástěnce počítá nedávnou aktivitu z Hostwatch i z čítačů firewallu, pokud jsou zapnuté a účet má příslušné oprávnění.
+
 ## v2.4.16
 
 - Validace záznamů Hostwatch, požadavků API a uložené konfigurace před použitím.
